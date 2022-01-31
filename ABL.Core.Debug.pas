@@ -42,6 +42,13 @@ procedure SendDebugMsg(AMessage: string);
 ///  </param>
 procedure SendErrorMsg(AMessage: string);
 /// <summary>
+///  Сохранение отладочного сообщения при включённом ключе Performance (по умолчанию выключен). Файл лога: [имя исполняемого файла]_log\[ГГГГММДД].log
+/// </summary>
+///  <param name="AMessage: string">
+///  Текст, подлежащий записи
+///  </param>
+procedure SendPerformanceMsg(AMessage: string);
+/// <summary>
 ///  Сохранение отладочного сообщения при включённом ключе TCP. Файл лога: [имя исполняемого файла]_log\[ГГГГММДД].txt
 /// </summary>
 ///  <param name="AMessage: string">
@@ -75,6 +82,12 @@ procedure SendErrorMsg(AMessage: string);
 begin
   if assigned(Debug) then
     Debug.SaveLogMsg('ERROR',AMessage);
+end;
+
+procedure SendPerformanceMsg(AMessage: string);
+begin
+  if assigned(Debug) then
+    Debug.SaveLogMsg('PERFORMANCE',AMessage);
 end;
 
 procedure SendTCPMsg(AMessage: string);

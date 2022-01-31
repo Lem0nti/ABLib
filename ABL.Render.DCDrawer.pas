@@ -62,7 +62,7 @@ begin
     FLock.Enter;
     try
       GetWindowRect(FHandle,ppRect);
-      while ppRect.Width div 4 <> ppRect.Width/4 do
+      while ppRect.Width mod 4 > 0 do
         ppRect.Width:=ppRect.Width+1;
       if (ADecodedFrame.Width>ppRect.Width) or (ADecodedFrame.Height>ppRect.Height) then
       begin
@@ -112,6 +112,8 @@ begin
             end;
           end;
         end;
+        if FFocusRect.Left>0 then
+          DrawFocusRect(drawDC,FFocusRect);
       finally
         ReleaseDC(FHandle,drawDC);
       end;

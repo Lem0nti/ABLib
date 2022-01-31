@@ -10,6 +10,10 @@ uses
 type
   TRTSPReceiver=class;
 
+    /// <summary>
+    /// Класс для логического "пинга" видеокамер.
+    /// Многие видеокамеры требуют периодического сигнала от потребителей видео, чтобы продолжать трансляцию.
+    /// </summary>
   TLogicPing=class(TThread)
   private
     FLock: TCriticalSection;
@@ -75,7 +79,7 @@ var
 {$ENDIF}
 
 const
-  USER_AGENT = 'ABL.TRTSPReceiver 1.0.5';
+  USER_AGENT = 'ABL.TRTSPReceiver 1.0.6';
   SCommand: array [0..4] of String = ('DESCRIBE', 'PLAY', 'SET_PARAMETER', 'SETUP', 'TEARDOWN');
 
 implementation
@@ -119,14 +123,19 @@ begin
         try
           aStopped:=FWaitForStop.WaitFor(FTimeOut);
           if aStopped=wrTimeOut then
-            FParent.SendSetParameter
+          begin
+            if assigned(FParent) then
+              FParent.SendSetParameter
+            else
+              break;
+          end
           else
             break;
         except on e: Exception do
-          SendErrorMsg('TLogicPing.Execute 126 '+e.ClassName+' - '+e.Message);
+          SendErrorMsg('TLogicPing.Execute 135: '+e.ClassName+' - '+e.Message);
         end
     else
-      SendErrorMsg('TLogicPing.Execute 129: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
+      SendErrorMsg('TLogicPing.Execute 138: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
   finally
     Terminate;
   end;
@@ -677,7 +686,10 @@ end;
 procedure TRTSPReceiver.SendTeardown;
 begin
   if assigned(LogicPing) then
+  begin
+    LogicPing.FParent:=nil;
     LogicPing.Stop;
+  end;
   SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
   TCPReader.Stop;
 end;
