@@ -22,6 +22,7 @@ type
     sws_ctx: PSwsContext;
     PrevWidth: integer;
     FCodec: TAVCodecID;
+    LastFrameTime: int64;
   protected
     {$IFDEF FPC}
     procedure ClearData(AData: Pointer); override;
@@ -32,6 +33,7 @@ type
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; ACodec: TAVCodecID; AName: string = ''); reintroduce;
     destructor Destroy; override;
+    procedure PushLastFrame;
   end;
 
 implementation
@@ -115,6 +117,7 @@ begin
             exit;
           if assigned(FOutputQueue) then
           begin
+            LastFrameTime:=CFrame^.Time;
             new(DecodedFrame);
             DecodedFrame^.Time:=CFrame^.Time;
             DecodedFrame^.Width:=VideoContext^.width;
@@ -161,6 +164,24 @@ begin
   //фрейм для выходных данных
   frame := av_frame_alloc;
   pkt^.flags:=0;
+end;
+
+procedure TVideoDecoder.PushLastFrame;
+var
+  DecodedFrame: PDecodedFrame;
+  DSize: integer;
+begin
+  if assigned(m_OutPicture) then
+  begin
+    new(DecodedFrame);
+    DecodedFrame^.Time:=LastFrameTime;
+    DecodedFrame^.Width:=VideoContext^.width;
+    DecodedFrame^.Height:=VideoContext^.height;
+    DSize:=DecodedFrame^.Width*DecodedFrame^.Height*3;
+    GetMem(DecodedFrame^.Data,DSize);
+    Move(m_OutPicture^.data[0]^,DecodedFrame^.Data^,DSize);
+    FOutputQueue.Push(DecodedFrame);
+  end;
 end;
 
 end.
