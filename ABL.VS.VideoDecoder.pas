@@ -73,6 +73,7 @@ end;
 
 destructor TVideoDecoder.Destroy;
 begin
+  Stop;
   CloseDecoder;
   inherited;
 end;
@@ -83,6 +84,7 @@ var
   CFrame: PDataFrame;
   got_picture,DSize: integer;
   DecodedFrame: PDecodedFrame;
+  StrNum: string;
 begin
   try
     CFrame:=PDataFrame(AInputData);
@@ -94,6 +96,7 @@ begin
       //сброс буфферов при ключевом кадре
 //      if (PByte(NativeUInt(CFrame.Data)+3)^ and $1F) in [5,7,8] then
 //        avcodec_flush_buffers(VideoContext);
+      StrNum:='98';
       avcodec_decode_video2(VideoContext, frame, @got_picture, pkt);
       if got_picture=1 then
       begin
@@ -108,6 +111,7 @@ begin
           if not assigned(m_OutPicture) then
           begin
             m_OutPicture := av_frame_alloc;
+            StrNum:='113';
             avpicture_alloc(PAVPicture(m_OutPicture), AV_PIX_FMT_BGR24, VideoContext^.width, VideoContext^.height );
             sws_ctx:=sws_getContext(VideoContext^.width,VideoContext^.height,VideoContext^.pix_fmt,VideoContext^.width,VideoContext^.height,
                 AV_PIX_FMT_BGR24,SWS_BICUBIC,nil,nil,nil);
@@ -148,7 +152,7 @@ begin
         FreeMem(CFrame^.Data);
     end;
   except on e: Exception do
-    SendErrorMsg('TVideoDecoder.DoExecute 146, Terminated='+BoolToStr(Terminated,true)+': '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TVideoDecoder.DoExecute 154, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+': '+e.ClassName+' - '+e.Message);
   end;
 end;
 
@@ -159,7 +163,7 @@ begin
   //создали декодер
   codec := avcodec_find_decoder(FCodec);
   VideoContext := avcodec_alloc_context3(codec);
-  VideoContext^.thread_count:=2;
+//  VideoContext^.thread_count:=2;
   avcodec_open2(VideoContext, codec, nil);
   //фрейм для выходных данных
   frame := av_frame_alloc;
