@@ -45,7 +45,7 @@ type
     RTSPParser: TRTSPParser;
     ThreadQueue: TThreadQueue;
     CurSession,TrackLink: AnsiString;
-    FConnectionString,realm,nonce: string;
+    FConnectionString,realm,nonce,FLastError: string;
     FSocket: TSocket;
     procedure Connect;
     function CSeq: AnsiString;
@@ -59,10 +59,12 @@ type
     function GetConnectionString: string;
     procedure SetActive(const Value: boolean);
     procedure SetConnectionString(const Value: string);
+    procedure SetThisLastError(ALastError: string);
   public
     Link: TURI;
     constructor Create(AOutputQueue: TThreadQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
     destructor Destroy; override;
+    function LastError: string;
     function LastFrameTime: int64;
     function ReadSize: Cardinal;
     procedure SendSetParameter;
@@ -298,6 +300,17 @@ begin
     result:=FConnectionString;
   finally
     Unlock;
+  end;
+end;
+
+function TRTSPReceiver.LastError: string;
+begin
+  FLock.Enter;
+  try
+    result:=FLastError;
+    FLastError:='';
+  finally
+    FLock.Leave;
   end;
 end;
 
@@ -628,11 +641,17 @@ begin
       begin
         result:=SendReceive(AMethod+' '+AURL+' RTSP/1.0'#13#10+ht+'CSeq: '+CSeq+#13#10'Authorization: '+authSeq+#13#10'User-Agent: '+AnsiString(USER_AGENT)+#13#10#13#10);
         if pos('401',copy(result,1,32))>0 then
+        begin
           SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 622: неправильный логин-пароль'#13#10+result);
+          SetThisLastError('неправильный логин-пароль');
+        end;
       end;
     end
     else
+    begin
       SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 626: необходима авторизация');
+      SetThisLastError('необходима авторизация');
+    end;
   end;
 end;
 
@@ -720,6 +739,16 @@ begin
     FConnectionString:=Value;
     if FConnectionString<>'' then
       Link.Apply(Value);
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TRTSPReceiver.SetThisLastError(ALastError: string);
+begin
+  FLock.Enter;
+  try
+    FLastError:=ALastError;
   finally
     FLock.Leave;
   end;
