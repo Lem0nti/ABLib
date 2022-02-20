@@ -67,7 +67,7 @@ type
     function LastError: string;
     function LastFrameTime: int64;
     function ReadSize: Cardinal;
-    procedure SendSetParameter;
+    function SendSetParameter: string;
     procedure SendTeardown;
     procedure SetOutputQueue(Queue: TBaseQueue);
     property Active: boolean read GetActive write SetActive;
@@ -117,6 +117,7 @@ end;
 procedure TLogicPing.Execute;
 var
   aStopped: TWaitResult;
+  tmpResult: integer;
 begin
   FreeOnTerminate:=true;
   try
@@ -124,20 +125,22 @@ begin
       while not Terminated do
         try
           aStopped:=FWaitForStop.WaitFor(FTimeOut);
-          if aStopped=wrTimeOut then
+          if (aStopped=wrTimeOut) and assigned(FParent) then
           begin
-            if assigned(FParent) then
-              FParent.SendSetParameter
-            else
+            tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
+            if tmpResult<0 then
+            begin
+              SendErrorMsg('TLogicPing.Execute 135: Host='+FParent.Link.Host+', SendSetParameter='+IntToStr(-tmpResult)+', Stop');
               break;
+            end;
           end
           else
             break;
         except on e: Exception do
-          SendErrorMsg('TLogicPing.Execute 135: '+e.ClassName+' - '+e.Message);
+          SendErrorMsg('TLogicPing.Execute 145: '+e.ClassName+' - '+e.Message);
         end
     else
-      SendErrorMsg('TLogicPing.Execute 138: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
+      SendErrorMsg('TLogicPing.Execute 148: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
   finally
     Terminate;
   end;
@@ -550,11 +553,14 @@ begin
         {$IFNDEF FPC}
         w:=GetLastError;
         {$ENDIF}
-        SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 531: '+string(AText)+' - '+IntToStr({$IFDEF FPC}sr){$ELSE}w)+':'+SysErrorMessage(w){$ENDIF});
+        if w=10054 then
+          result:='-10054'
+        else
+          SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 556: '+string(AText)+' - '+IntToStr({$IFDEF FPC}sr){$ELSE}w)+':'+SysErrorMessage(w){$ENDIF});
       end;
     end;
   except on e: Exception do
-    SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 535: '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 560: '+e.ClassName+' - '+e.Message);
   end;
 end;
 
@@ -655,9 +661,9 @@ begin
   end;
 end;
 
-procedure TRTSPReceiver.SendSetParameter;
+function TRTSPReceiver.SendSetParameter: string;
 begin
-  SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
+  result:=SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
 end;
 
 function TRTSPReceiver.SendSetup: boolean;
