@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, SyncObjs, Windows;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, SyncObjs, Windows, ABL.Core.BaseQueue;
 
 type
   TIfMotion=class(TDirectThread)
@@ -20,6 +20,7 @@ type
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
+    constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     procedure SetGrid(ACols, ARows: word);
     property Cols: word read GetCols write SetCols;
     property Rows: word read GetRows write SetRows;
@@ -29,6 +30,15 @@ type
 implementation
 
 { TIfMotion }
+
+constructor TIfMotion.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
+begin
+  inherited Create(AInputQueue,AOutputQueue,AName);
+  FRows:=16;
+  FCols:=16;
+  FSensivity:=44;
+  Active:=true;
+end;
 
 procedure TIfMotion.DoExecute(var AInputData, AResultData: Pointer);
 var
@@ -138,6 +148,7 @@ begin
   FLock.Enter;
   try
     FCols:=Value;
+    SetLength(Ethalon,0);
   finally
     FLock.Leave;
   end;
@@ -149,6 +160,7 @@ begin
   try
     FCols:=ACols;
     FRows:=ARows;
+    SetLength(Ethalon,0);
   finally
     FLock.Leave;
   end;
@@ -159,6 +171,7 @@ begin
   FLock.Enter;
   try
     FRows:=Value;
+    SetLength(Ethalon,0);
   finally
     FLock.Leave;
   end;
