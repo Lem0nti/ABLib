@@ -136,9 +136,9 @@ procedure TBaseThread.IncreaseIteration(ATime: int64);
 begin
   Time100:=Time100+ATime;
   inc(FIterationCounter);
-  if FIterationCounter div 100=FIterationCounter/100 then
+  if FIterationCounter mod 50=0 then
   begin
-    FPerformance:=(Time100/100)/iCounterPerMSec;
+    FPerformance:=(Time100/50)/iCounterPerMSec;
     Time100:=0;
   end;
 end;

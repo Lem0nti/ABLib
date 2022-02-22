@@ -81,7 +81,7 @@ var
 {$ENDIF}
 
 const
-  USER_AGENT = 'ABL.TRTSPReceiver 1.0.6';
+  USER_AGENT = 'ABL.TRTSPReceiver 1.0.7';
   SCommand: array [0..4] of String = ('DESCRIBE', 'PLAY', 'SET_PARAMETER', 'SETUP', 'TEARDOWN');
 
 implementation
@@ -196,6 +196,7 @@ begin
       SendErrorMsg('TRTSPReceiver.Connect 182: '+{$IFDEF UNIX}'connect error '+IntToStr(e){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF})
     else
     begin
+      FCSeq := 1;
       w:=SendReceiveMethod('OPTIONS',AnsiString(Link.GetFullURI),'');
       if w='' then
         SendErrorMsg('TRTSPReceiver.Connect 187: empty OPTIONS request')
@@ -725,7 +726,6 @@ begin
   try
     if Value then
     begin
-      FCSeq := 1;
       if FConnectionString='' then
         SendErrorMsg('TRTSPReceiver::SetActive 693: no connection string')
       else if not TCPReader.Active then
