@@ -3,61 +3,80 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, Types, SyncObjs;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, Types, SyncObjs, ABL.Core.BaseQueue;
 
 type
+  TReceiverInfo=record
+    Receiver: TBaseQueue;
+    CutRect: TRect;
+  end;
+
   TImageCutter=class(TDirectThread)
   private
-    FCutRect: TRect;
-    function GetCutRect: TRect;
-    procedure SetCutRect(const Value: TRect);
+    ReceiverList: TArray<TReceiverInfo>;
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
-    property CutRect: TRect read GetCutRect write SetCutRect;
+    procedure AddReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
   end;
 
 implementation
 
 { TImageCutter }
 
-procedure TImageCutter.DoExecute(var AInputData, AResultData: Pointer);
-var
-  DecodedFrame: PDecodedFrame;
-  AbsRect: TRect;
-  y: integer;
-begin
-  DecodedFrame:=PDecodedFrame(AInputData);
-  AResultData:=AInputData;
-  AInputData:=nil;
-  //превращаем относительный прямоугольник в конкретный, вверх ногами
-  AbsRect:=Rect(Round(CutRect.Left/10000*DecodedFrame.Width),Round((CutRect.Top)/10000*DecodedFrame.Height),
-      Round(CutRect.Right/10000*DecodedFrame.Width),Round((CutRect.Bottom)/10000*DecodedFrame.Height));
-  while AbsRect.Width mod 4 > 0 do
-    AbsRect.Width:=AbsRect.Width+1;
-  for y := AbsRect.Top to AbsRect.Bottom do
-    Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,PByte(NativeUInt(DecodedFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
-  DecodedFrame.Width:=AbsRect.Width;
-  DecodedFrame.Height:=AbsRect.Height;
-end;
-
-function TImageCutter.GetCutRect: TRect;
+procedure TImageCutter.AddReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
 begin
   FLock.Enter;
   try
-    result:=FCutRect;
+    SetLength(ReceiverList,Length(ReceiverList)+1);
+    ReceiverList[high(ReceiverList)].Receiver:=AReceiver;
+    ReceiverList[high(ReceiverList)].CutRect:=ACutRect;
   finally
     FLock.Leave;
   end;
 end;
 
-procedure TImageCutter.SetCutRect(const Value: TRect);
+procedure TImageCutter.DoExecute(var AInputData, AResultData: Pointer);
+var
+  DecodedFrame,OutputFrame: PDecodedFrame;
+  AbsRect, ACutRect: TRect;
+  y,q,hl: integer;
+  OutputQueue: TBaseQueue;
 begin
-  FLock.Enter;
+  DecodedFrame:=PDecodedFrame(AInputData);
   try
-    FCutRect:=Value;
+    q:=0;
+    while true do
+    begin
+      FLock.Enter;
+      hl:=high(ReceiverList);
+      if q<hl then
+      begin
+        ACutRect:=ReceiverList[q].CutRect;
+        OutputQueue:=ReceiverList[q].Receiver;
+      end;
+      FLock.Leave;
+      if q>=hl then
+        break
+      else
+      begin
+        //превращаем относительный прямоугольник в конкретный
+        AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame.Width),Round((ACutRect.Top)/10000*DecodedFrame.Height),
+            Round(ACutRect.Right/10000*DecodedFrame.Width),Round((ACutRect.Bottom)/10000*DecodedFrame.Height));
+        while AbsRect.Width mod 4 > 0 do
+          AbsRect.Width:=AbsRect.Width+1;
+        new(OutputFrame);
+        OutputFrame.Width:=AbsRect.Width;
+        OutputFrame.Height:=AbsRect.Height;
+        OutputFrame.Time:=DecodedFrame.Time;
+        GetMem(OutputFrame^.Data,OutputFrame.Width*OutputFrame.Height*3);
+        for y := AbsRect.Top to AbsRect.Bottom do
+          Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
+        inc(q);
+      end;
+    end;
   finally
-    FLock.Leave;
+    FreeMem(DecodedFrame.Data);
   end;
 end;
 
