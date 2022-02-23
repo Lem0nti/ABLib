@@ -3,8 +3,8 @@
 interface
 
 uses
-  ABL.Core.DirectThread, //ABL.VS.FFMPEG,
-  libavcodec, libavutil_frame, libswscale, libavutil_pixfmt,
+  ABL.Core.DirectThread, ABL.VS.FFMPEG,
+  //libavcodec, libavutil_frame, libswscale, libavutil_pixfmt,
   ABL.Core.BaseQueue, ABL.IO.IOTypes,
   ABL.VS.VSTypes, ABL.Core.Debug, SysUtils;
 
@@ -93,9 +93,6 @@ begin
         exit;
       pkt^.size:=CFrame^.Size;
       pkt^.data:=CFrame^.Data;
-      //сброс буфферов при ключевом кадре
-//      if (PByte(NativeUInt(CFrame.Data)+3)^ and $1F) in [5,7,8] then
-//        avcodec_flush_buffers(VideoContext);
       StrNum:='98';
       avcodec_decode_video2(VideoContext, frame, @got_picture, pkt);
       if got_picture=1 then
@@ -163,7 +160,6 @@ begin
   //создали декодер
   codec := avcodec_find_decoder(FCodec);
   VideoContext := avcodec_alloc_context3(codec);
-//  VideoContext^.thread_count:=2;
   avcodec_open2(VideoContext, codec, nil);
   //фрейм для выходных данных
   frame := av_frame_alloc;

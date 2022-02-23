@@ -48,7 +48,6 @@ begin
     wh:=DecodedFrame.Width/tmpWidth;
     hh:=DecodedFrame.Height/tmpHeight;
     OffsetTo:=0;
-    OffsetFrom:=0;
     if (DecodedFrame.Width<tmpWidth) or (DecodedFrame.Height<tmpHeight) then //надо ли увеличивать картинку
     begin
       new(OutputFrame);

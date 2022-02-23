@@ -2,6 +2,8 @@
 
 interface
 
+{$I LibAVHeaders/CompilerDefines.inc}
+
 const
   AV_NUM_DATA_POINTERS = 8;
 
@@ -15,30 +17,6 @@ type
   PPByte = ^PByte;
   Size_t = NativeUInt;
   Int = Integer;
-
-  TAVFrameSideDataType = (
-    AV_FRAME_DATA_PANSCAN,
-    AV_FRAME_DATA_A53_CC,
-    AV_FRAME_DATA_STEREO3D,
-    AV_FRAME_DATA_MATRIXENCODING,
-    AV_FRAME_DATA_DOWNMIX_INFO,
-    AV_FRAME_DATA_REPLAYGAIN,
-    AV_FRAME_DATA_DISPLAYMATRIX,
-    AV_FRAME_DATA_AFD,
-    AV_FRAME_DATA_MOTION_VECTORS,
-    AV_FRAME_DATA_SKIP_SAMPLES,
-    AV_FRAME_DATA_AUDIO_SERVICE_TYPE,
-    AV_FRAME_DATA_MASTERING_DISPLAY_METADATA,
-    AV_FRAME_DATA_GOP_TIMECODE,
-    AV_FRAME_DATA_SPHERICAL,
-    AV_FRAME_DATA_CONTENT_LIGHT_LEVEL,
-    AV_FRAME_DATA_ICC_PROFILE,
-    AV_FRAME_DATA_QP_TABLE_PROPERTIES,
-    AV_FRAME_DATA_QP_TABLE_DATA,
-    AV_FRAME_DATA_S12M_TIMECODE,
-    AV_FRAME_DATA_DYNAMIC_HDR_PLUS,
-    AV_FRAME_DATA_REGIONS_OF_INTEREST
-  );
 
   TAVPacketSideDataType = (
     AV_PKT_DATA_PALETTE,
@@ -80,6 +58,32 @@ type
     AV_PICTURE_TYPE_SI,
     AV_PICTURE_TYPE_SP,
     AV_PICTURE_TYPE_BI
+  );
+
+  TAVFrameSideDataType = (
+    AV_FRAME_DATA_PANSCAN,
+    AV_FRAME_DATA_A53_CC,
+    AV_FRAME_DATA_STEREO3D,
+    AV_FRAME_DATA_MATRIXENCODING,
+    AV_FRAME_DATA_DOWNMIX_INFO,
+    AV_FRAME_DATA_REPLAYGAIN,
+    AV_FRAME_DATA_DISPLAYMATRIX,
+    AV_FRAME_DATA_AFD,
+    AV_FRAME_DATA_MOTION_VECTORS,
+    AV_FRAME_DATA_SKIP_SAMPLES,
+    AV_FRAME_DATA_AUDIO_SERVICE_TYPE,
+    AV_FRAME_DATA_MASTERING_DISPLAY_METADATA,
+    AV_FRAME_DATA_GOP_TIMECODE,
+    AV_FRAME_DATA_SPHERICAL,
+    AV_FRAME_DATA_CONTENT_LIGHT_LEVEL,
+    AV_FRAME_DATA_ICC_PROFILE,
+{$IFDEF FF_API_FRAME_QP}
+    AV_FRAME_DATA_QP_TABLE_PROPERTIES,
+    AV_FRAME_DATA_QP_TABLE_DATA,
+{$ENDIF}
+    AV_FRAME_DATA_S12M_TIMECODE,
+    AV_FRAME_DATA_DYNAMIC_HDR_PLUS,
+    AV_FRAME_DATA_REGIONS_OF_INTEREST
   );
 
   TAVColorRange = (
@@ -164,17 +168,7 @@ type
     AVCHROMA_LOC_NB
   );
 
-  TAVMediaType = (
-    AVMEDIA_TYPE_UNKNOWN = -1,
-    AVMEDIA_TYPE_VIDEO,
-    AVMEDIA_TYPE_AUDIO,
-    AVMEDIA_TYPE_DATA,
-    AVMEDIA_TYPE_SUBTITLE,
-    AVMEDIA_TYPE_ATTACHMENT,
-    AVMEDIA_TYPE_NB
-  );
-
-  //PAVCodecID = ^TAVCodecID;
+  PAVCodecID = ^TAVCodecID;
   TAVCodecID = (
     AV_CODEC_ID_NONE,
     AV_CODEC_ID_MPEG1VIDEO,
@@ -416,7 +410,7 @@ type
     AV_CODEC_ID_LSCR,
     AV_CODEC_ID_VP4,
 {$IFNDEF FPC}
-    AV_CODEC_ID_FIRST_AUDIO = $10000,     ///< A dummy id pointing at the start of audio codecs
+    AV_CODEC_ID_FIRST_AUDIO = $10000,
 {$ENDIF}
     AV_CODEC_ID_PCM_S16LE = $10000,
     AV_CODEC_ID_PCM_S16BE,
@@ -597,7 +591,7 @@ type
     AV_CODEC_ID_ATRAC9,
     AV_CODEC_ID_HCOM,
 {$IFNDEF FPC}
-    AV_CODEC_ID_FIRST_SUBTITLE = $17000,          ///< A dummy ID pointing at the start of subtitle codecs.
+    AV_CODEC_ID_FIRST_SUBTITLE = $17000,
 {$ENDIF}
     AV_CODEC_ID_DVD_SUBTITLE = $17000,
     AV_CODEC_ID_DVB_SUBTITLE,
@@ -626,7 +620,7 @@ type
     AV_CODEC_ID_TTML,
     AV_CODEC_ID_ARIB_CAPTION,
 {$IFNDEF FPC}
-    AV_CODEC_ID_FIRST_UNKNOWN = $18000,
+    AV_CODEC_ID_FIRST_UNKNOWN = $18000,           ///< A dummy ID pointing at the start of various fake codecs.
 {$ENDIF}
     AV_CODEC_ID_TTF = $18000,
     AV_CODEC_ID_SCTE_35,
@@ -645,7 +639,17 @@ type
     AV_CODEC_ID_WRAPPED_AVFRAME = $21001
   );
 
-  //PPAVPixelFormat = ^PAVPixelFormat;
+  TAVMediaType = (
+    AVMEDIA_TYPE_UNKNOWN = -1,
+    AVMEDIA_TYPE_VIDEO,
+    AVMEDIA_TYPE_AUDIO,
+    AVMEDIA_TYPE_DATA,
+    AVMEDIA_TYPE_SUBTITLE,
+    AVMEDIA_TYPE_ATTACHMENT,
+    AVMEDIA_TYPE_NB
+  );
+
+  PPAVPixelFormat = ^PAVPixelFormat;
   PAVPixelFormat = ^TAVPixelFormat;
   TAVPixelFormat = (
     AV_PIX_FMT_NONE = -1,
@@ -693,10 +697,14 @@ type
     AV_PIX_FMT_BGR565LE,
     AV_PIX_FMT_BGR555BE,
     AV_PIX_FMT_BGR555LE,
+{$IFDEF FF_API_VAAPI}
     AV_PIX_FMT_VAAPI_MOCO,
     AV_PIX_FMT_VAAPI_IDCT,
     AV_PIX_FMT_VAAPI_VLD,
     AV_PIX_FMT_VAAPI = AV_PIX_FMT_VAAPI_VLD,
+{$ELSE}
+    AV_PIX_FMT_VAAPI,
+{$ENDIF}
     AV_PIX_FMT_YUV420P16LE,
     AV_PIX_FMT_YUV420P16BE,
     AV_PIX_FMT_YUV422P16LE,
@@ -946,8 +954,18 @@ type
     SUBTITLE_ASS
   );
 
+  PPAVCodec = ^PAVCodec;
+  PAVCodec = ^TAVCodec;
+  PAVHWAccel = ^TAVHWAccel;
+  PPAVCodecContext = ^PAVCodecContext;
+  PAVCodecContext = ^TAVCodecContext;
+  TexecuteCall = function (c2: PAVCodecContext; arg: Pointer): Integer; cdecl;
+  Texecute2Call = function (c2: PAVCodecContext; arg: Pointer; jobnr, threadnr: Integer): Integer; cdecl;
+
   PAVBuffer = ^TAVBuffer;
   TAVBuffer = record
+    // need {$ALIGN 8}
+    // defined libavutil/buffer_internal.h
   end;
 
   PPAVBufferRef = ^PAVBufferRef;
@@ -979,10 +997,12 @@ type
     side_data_elems: Integer;
     duration: Int64;
     pos: Int64;
+{$IFDEF FF_API_CONVERGENCE_DURATION}
     convergence_duration: Int64;
+{$ENDIF}
   end;
 
-  PAVRational=^TAVRational;
+  PAVRational = ^TAVRational;
   TAVRational = record
     num: Integer;
     den: Integer;
@@ -997,6 +1017,7 @@ type
   PPAVDictionary = ^PAVDictionary;
   PAVDictionary = ^TAVDictionary;
   TAVDictionary = record
+    // defined in libavutil/dict.h
     count: Integer;
     elems: PAVDictionaryEntry;
   end;
@@ -1024,13 +1045,17 @@ type
     pict_type: TAVPictureType;
     sample_aspect_ratio: TAVRational;
     pts: Int64;
+{$IFDEF FF_API_PKT_PTS}
     pkt_pts: Int64;
+{$ENDIF}
     pkt_dts: Int64;
     coded_picture_number: Integer;
     display_picture_number: Integer;
     quality: Integer;
     opaque: Pointer;
+{$IFDEF FF_API_ERROR_FRAME}
     error: array[0..AV_NUM_DATA_POINTERS-1] of Int64;
+{$ENDIF}
     repeat_pict: Integer;
     interlaced_frame: Integer;
     top_field_first: Integer;
@@ -1056,10 +1081,12 @@ type
     decode_error_flags: Integer;
     channels: Integer;
     pkt_size: Integer;
+{$IFDEF FF_API_FRAME_QP}
     qscale_table: PByte;
     qstride: Integer;
     qscale_type: Integer;
     qp_table_buf: PAVBufferRef;
+{$ENDIF}
     hw_frames_ctx: PAVBufferRef;
     opaque_ref: PAVBufferRef;
     crop_top: Size_t;
@@ -1075,9 +1102,9 @@ type
       1: (dbl: Double);
       2: (str: PAnsiChar);
       3: (q: TAVRational);
-  end;
+    end;
 
-  //PPAVOption = ^PAVOption;
+  PPAVOption = ^PAVOption;
   PAVOption = ^TAVOption;
   TAVOption = record
     name: PAnsiChar;
@@ -1108,8 +1135,8 @@ type
     nb_components: Integer;
   end;
 
-  //PPPAVClass = ^PPAVClass;
-  //PPAVClass = ^PAVClass;
+  PPPAVClass = ^PPAVClass;
+  PPAVClass = ^PAVClass;
   PAVClass = ^TAVClass;
   TAVClass = record
     class_name: PAnsiChar;
@@ -1128,21 +1155,47 @@ type
   PAVProfile = ^TAVProfile;
   TAVProfile = record
     profile: Integer;
-    name: PAnsiChar;
+    name: PAnsiChar; ///< short name for the profile
   end;
-
-  PAVCodec = ^TAVCodec;
 
   PAVCodecInternal = ^TAVCodecInternal;
   TAVCodecInternal = record
+    // need {$ALIGN 8}
+    // defined in libavcodec/internal.h
   end;
 
   PRcOverride = ^TRcOverride;
-  TRcOverride = record
+  TRcOverride = record // SizeOf = 16
     start_frame: Integer;
     end_frame: Integer;
-    qscale: Integer;
+    qscale: Integer; // If this is 0 then quality_factor will be used instead.
     quality_factor: Single;
+  end;
+
+  PMpegEncContext = ^TMpegEncContext;
+  TMpegEncContext = record
+    // need {$ALIGN 8}
+    // defined in libavcodec/mpegvideo.h
+  end;
+
+  TAVHWAccel = record
+    name: PAnsiChar;
+    ttype: TAVMediaType;
+    id: TAVCodecID;
+    pix_fmt: TAVPixelFormat;
+    capabilities: Integer;
+    alloc_frame: function(avctx: PAVCodecContext; frame: PAVFrame): Integer; cdecl;
+    start_frame: function(avctx: PAVCodecContext; const buf: PByte; buf_size: Cardinal): Integer; cdecl;
+    decode_params: function(avctx: PAVCodecContext; type_: Integer; const buf: PByte; buf_size: Cardinal): Integer; cdecl;
+    decode_slice: function(avctx: PAVCodecContext; const buf: PByte; buf_size: Cardinal): Integer; cdecl;
+    end_frame: function(avctx: PAVCodecContext): Integer; cdecl;
+    frame_priv_data_size: Integer;
+    decode_mb: procedure(s: PMpegEncContext); cdecl;
+    init: function(avctx: PAVCodecContext): Integer; cdecl;
+    uninit: function(avctx: PAVCodecContext): Integer; cdecl;
+    priv_data_size: Integer;
+    caps_internal: Integer;
+    frame_params: function(avctx: PAVCodecContext; hw_frames_ctx: PAVBufferRef): Integer; cdecl;
   end;
 
   PAVCodecDescriptor = ^TAVCodecDescriptor;
@@ -1156,12 +1209,6 @@ type
     profiles: PAVProfile;
   end;
 
-  PAVHWAccel = ^TAVHWAccel;
-
-  PPAVCodecContext = ^PAVCodecContext;
-  PAVCodecContext = ^TAVCodecContext;
-  TexecuteCall = function (c2: PAVCodecContext; arg: Pointer): Integer; cdecl;
-  Texecute2Call = function (c2: PAVCodecContext; arg: Pointer; jobnr, threadnr: Integer): Integer; cdecl;
   TAVCodecContext = record
     av_class: PAVClass;
     log_level_offset: Integer;
@@ -1192,15 +1239,20 @@ type
     coded_width, coded_height: Integer;
     gop_size: Integer;
     pix_fmt: TAVPixelFormat;
-    draw_horiz_band: procedure (s: PAVCodecContext; const src: PAVFrame; offset: PInteger;
+    draw_horiz_band: procedure (s: PAVCodecContext;
+                            const src: PAVFrame; offset: PInteger;
                             y, ttype, height: Integer); cdecl;
     get_format: function(s: PAVCodecContext; const fmt: PAVPixelFormat): TAVPixelFormat; cdecl;
     max_b_frames: Integer;
     b_quant_factor: Single;
+{$IFDEF FF_API_PRIVATE_OPT}
     b_frame_strategy: Integer;
+{$ENDIF}
     b_quant_offset: Single;
     has_b_frames: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     mpeg_quant: Integer;
+{$ENDIF}
     i_quant_factor: Single;
     i_quant_offset: Single;
     lumi_masking: Single;
@@ -1209,7 +1261,9 @@ type
     p_masking: Single;
     dark_masking: Single;
     slice_count: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     prediction_method: Integer;
+{$ENDIF}
     slice_offset: PInteger;
     sample_aspect_ratio: TAVRational;
     me_cmp: Integer;
@@ -1218,7 +1272,9 @@ type
     ildct_cmp: Integer;
     dia_size: Integer;
     last_predictor_count: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     pre_me: Integer;
+{$ENDIF}
     me_pre_cmp: Integer;
     pre_dia_size: Integer;
     me_subpel_quality: Integer;
@@ -1227,21 +1283,31 @@ type
     mb_decision: Integer;
     intra_matrix: PWord;
     inter_matrix: PWord;
+{$IFDEF FF_API_PRIVATE_OPT}
     scenechange_threshold: Integer;
     noise_reduction: Integer;
+{$ENDIF}
     intra_dc_precision: Integer;
     skip_top: Integer;
     skip_bottom: Integer;
     mb_lmin: Integer;
     mb_lmax: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     me_penalty_compensation: Integer;
+{$ENDIF}
     bidir_refine: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     brd_scale: Integer;
+{$ENDIF}
     keyint_min: Integer;
     refs: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     chromaoffset: Integer;
+{$ENDIF}
     mv0_threshold: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     b_sensitivity: Integer;
+{$ENDIF}
     color_primaries: TAVColorPrimaries;
     color_trc: TAVColorTransferCharacteristic;
     colorspace: TAVColorSpace;
@@ -1258,7 +1324,7 @@ type
     cutoff: Integer;
     channel_layout: Int64;
     request_channel_layout: Int64;
-    audio_service_type: TAVAudioServiceType;
+     audio_service_type: TAVAudioServiceType;
     request_sample_fmt: TAVSampleFormat;
     get_buffer2: function(s: PAVCodecContext; frame: PAVFrame; flags: Integer): Integer; cdecl;
     refcounted_frames: Integer;
@@ -1275,18 +1341,31 @@ type
     rc_max_available_vbv_use: Single;
     rc_min_vbv_overflow_use: Single;
     rc_initial_buffer_occupancy: Integer;
+{$IFDEF FF_API_CODER_TYPE}
     coder_type: Integer;
+{$ENDIF}
+{$IFDEF FF_API_PRIVATE_OPT}
     context_model: Integer;
+{$ENDIF}
+{$IFDEF FF_API_PRIVATE_OPT}
     frame_skip_threshold: Integer;
     frame_skip_factor: Integer;
     frame_skip_exp: Integer;
     frame_skip_cmp: Integer;
+{$ENDIF}
     trellis: Integer;
+{$IFDEF FF_API_PRIVATE_OPT}
     min_prediction_order: Integer;
     max_prediction_order: Integer;
     timecode_frame_start: Int64;
+{$ENDIF}
+{$IFDEF FF_API_RTP_CALLBACK}
     rtp_callback: procedure(avctx: PAVCodecContext; data: Pointer; size, mb_nb: Integer);
+{$ENDIF}
+{$IFDEF FF_API_PRIVATE_OPT}
     rtp_payload_size: Integer;
+{$ENDIF}
+{$IFDEF FF_API_STAT_BITS}
     mv_bits: Integer;
     header_bits: Integer;
     i_tex_bits: Integer;
@@ -1296,12 +1375,16 @@ type
     skip_count: Integer;
     misc_bits: Integer;
     frame_bits: Integer;
+{$ENDIF}
     stats_out: PAnsiChar;
     stats_in: PAnsiChar;
     workaround_bugs: Integer;
     strict_std_compliance: Integer;
     error_concealment: Integer;
     debug: Integer;
+{$IFDEF FF_API_DEBUG_MV}
+    debug_mv: Integer;
+{$ENDIF}
     err_recognition: Integer;
     reordered_opaque: Int64;
     hwaccel: PAVHWAccel;
@@ -1311,38 +1394,51 @@ type
     idct_algo: Integer;
     bits_per_coded_sample: Integer;
     bits_per_raw_sample: Integer;
-    lowres: Integer;
+{$IFDEF FF_API_LOWRES}
+     lowres: Integer;
+{$ENDIF}
+{$IFDEF FF_API_CODED_FRAME}
     coded_frame: PAVFrame;
+{$ENDIF}
     thread_count: Integer;
     thread_type: Integer;
     active_thread_type: Integer;
     thread_safe_callbacks: Integer;
     execute: function (c: PAVCodecContext; func: TexecuteCall; arg2: Pointer; ret: PInteger; count, size: Integer): Integer; cdecl;
     execute2: function (c: PAVCodecContext; func: Texecute2Call; arg2: Pointer; ret: PInteger; count: Integer): Integer; cdecl;
-    nsse_weight: Integer;
-    profile: Integer;
-    level: Integer;
+     nsse_weight: Integer;
+     profile: Integer;
+     level: Integer;
     skip_loop_filter: TAVDiscard;
     skip_idct: TAVDiscard;
     skip_frame: TAVDiscard;
     subtitle_header: PByte;
     subtitle_header_size: Integer;
+{$IFDEF FF_API_VBV_DELAY}
     vbv_delay: Int64;
+{$ENDIF}
+{$IFDEF FF_API_SIDEDATA_ONLY_PKT}
     side_data_only_packets: Integer;
+{$ENDIF}
     initial_padding: Integer;
     framerate: TAVRational;
     sw_pix_fmt: TAVPixelFormat;
     pkt_timebase: TAVRational;
     codec_descriptor: PAVCodecDescriptor;
+{$IFNDEF FF_API_LOWRES}
+    lowres: Integer;
+{$ENDIF}
     pts_correction_num_faulty_pts: Int64;
     pts_correction_num_faulty_dts: Int64;
     pts_correction_last_pts: Int64;
-    pts_correction_last_dts: Int64;       
+    pts_correction_last_dts: Int64;
     sub_charenc: PAnsiChar;
     sub_charenc_mode: Integer;
     skip_alpha: Integer;
     seek_preroll: Integer;
+{$IFNDEF FF_API_DEBUG_MV}
     debug_mv: Integer;
+{$ENDIF}
     chroma_intra_matrix: PWord;
     dump_separator: PByte;
     codec_whitelist: PAnsiChar;
@@ -1360,38 +1456,10 @@ type
     discard_damaged_percentage: Integer;
   end;
 
-  PMpegEncContext = ^TMpegEncContext;
-  TMpegEncContext = record
-  end;
-
-  TAVHWAccel = record
-    name: PAnsiChar;
-    ttype: TAVMediaType;
-    id: TAVCodecID;
-    pix_fmt: TAVPixelFormat;
-    capabilities: Integer;
-    alloc_frame: function(avctx: PAVCodecContext; frame: PAVFrame): Integer; cdecl;
-    start_frame: function(avctx: PAVCodecContext; const buf: PByte; buf_size: Cardinal): Integer; cdecl;
-    decode_params: function(avctx: PAVCodecContext; type_: Integer; const buf: PByte; buf_size: Cardinal): Integer; cdecl;
-    decode_slice: function(avctx: PAVCodecContext; const buf: PByte; buf_size: Cardinal): Integer; cdecl;
-    end_frame: function(avctx: PAVCodecContext): Integer; cdecl;
-    frame_priv_data_size: Integer;
-    decode_mb: procedure(s: PMpegEncContext); cdecl;
-    init: function(avctx: PAVCodecContext): Integer; cdecl;
-    uninit: function(avctx: PAVCodecContext): Integer; cdecl;
-    priv_data_size: Integer;
-    caps_internal: Integer;
-    frame_params: function(avctx: PAVCodecContext; hw_frames_ctx: PAVBufferRef): Integer; cdecl;
-  end;
-
   PAVCodecDefault = ^TAVCodecDefault;
   TAVCodecDefault = record
-  end;
-
-  PAVPicture = ^TAVPicture;
-  TAVPicture = record
-    data: array[0..AV_NUM_DATA_POINTERS-1] of PByte;
-    linesize: array[0..AV_NUM_DATA_POINTERS-1] of Integer;
+    // need {$ALIGN 8}
+    // defined in libavcodec/internal.h
   end;
 
   PPAVSubtitleRect = ^PAVSubtitleRect;
@@ -1402,7 +1470,9 @@ type
     w: Integer;
     h: Integer;
     nb_colors: Integer;
+{$IFDEF FF_API_AVPICTURE}
     pict: TAVPicture;
+{$ENDIF}
     data: array[0..3] of PByte;
     linesize: array[0..3] of Integer;
     ttype: TAVSubtitleType;
@@ -1411,19 +1481,21 @@ type
     flags: Integer;
   end;
 
-  PAVSubtitle=^TAVSubtitle;
+  PAVSubtitle = ^TAVSubtitle;
   TAVSubtitle = record
-    format: Word;
-    start_display_time: Cardinal;
-    end_display_time: Cardinal;
+    format: Word; (* 0 = graphics *)
+    start_display_time: Cardinal; (* relative to packet pts, in ms *)
+    end_display_time: Cardinal; (* relative to packet pts, in ms *)
     num_rects: Cardinal;
     rects: PPAVSubtitleRect;
-    pts: Int64;
+    pts: Int64;    ///< Same as packet pts, in AV_TIME_BASE
   end;
 
   PPAVCodecHWConfigInternal = ^PAVCodecHWConfigInternal;
   PAVCodecHWConfigInternal = ^TAVCodecHWConfigInternal;
   TAVCodecHWConfigInternal = record
+    // need {$ALIGN 8}
+    // defined in libavcodec/hwaccel.h
   end;
 
   TAVCodec = record
@@ -1463,15 +1535,23 @@ type
     hw_configs: PPAVCodecHWConfigInternal;
   end;
 
+  PAVPicture = ^TAVPicture;
+  TAVPicture = record
+    data: array[0..AV_NUM_DATA_POINTERS-1] of PByte;        ///< pointers to the image data planes
+    linesize: array[0..AV_NUM_DATA_POINTERS-1] of Integer;  ///< number of bytes per line
+  end;
 
-  pSwsContext = ^SwsContext;
-  SwsContext = record
+  PPSwsContext = ^PSwsContext;
+  PSwsContext = ^TSwsContext;
+  TSwsContext = record
+    // need {$ALIGN 8}
+    // defined in libswscale/swscale_internal.h
   end;
 
   PSwsVector = ^TSwsVector;
   TSwsVector = record
-    coeff: PDouble;
-    length: Integer;
+    coeff: PDouble;             ///< pointer to the list of coefficients
+    length: Integer;            ///< number of coefficients in the vector
   end;
 
   PSwsFilter = ^TSwsFilter;
@@ -1482,26 +1562,28 @@ type
     chrV: PSwsVector;
   end;
 
-
 function av_packet_alloc: PAVPacket; cdecl; external AVCODEC_LIBNAME name 'av_packet_alloc';
 procedure av_packet_free(pkt: PPAVPacket); cdecl; external AVCODEC_LIBNAME name 'av_packet_free';
-function avcodec_alloc_context3(const codec: PAVCodec): PAVCodecContext; cdecl; external AVCODEC_LIBNAME name 'avcodec_alloc_context3';
+function avcodec_alloc_context3(const codec: PAVCodec): PAVCodecContext; cdecl; external AVCODEC_LIBNAME name
+    'avcodec_alloc_context3';
 function avcodec_close(avctx: PAVCodecContext): Integer; cdecl; external AVCODEC_LIBNAME name 'avcodec_close';
 function avcodec_decode_video2(avctx: PAVCodecContext; picture: PAVFrame; got_picture_ptr: PInteger;
-                         const avpkt: PAVPacket): Integer; cdecl; external AVCODEC_LIBNAME name 'avcodec_decode_video2';
+    const avpkt: PAVPacket): Integer; cdecl; external AVCODEC_LIBNAME name 'avcodec_decode_video2';
 procedure avcodec_free_context(avctx: PPAVCodecContext); cdecl; external AVCODEC_LIBNAME name 'avcodec_free_context';
 function avcodec_find_decoder(id: TAVCodecID): PAVCodec; cdecl; external AVCODEC_LIBNAME name 'avcodec_find_decoder';
-function avcodec_open2(avctx: PAVCodecContext; const codec: PAVCodec; options: PPAVDictionary): Integer; cdecl; external AVCODEC_LIBNAME name 'avcodec_open2';
-function avpicture_alloc(picture: PAVPicture; pix_fmt: TAVPixelFormat; width, height: Integer): Integer; cdecl; external AVCODEC_LIBNAME name 'avpicture_alloc';
+function avcodec_open2(avctx: PAVCodecContext; const codec: PAVCodec; options: PPAVDictionary): Integer; cdecl;
+    external AVCODEC_LIBNAME name 'avcodec_open2';
+function avpicture_alloc(picture: PAVPicture; pix_fmt: TAVPixelFormat; width, height: Integer): Integer; cdecl;
+    external AVCODEC_LIBNAME name 'avpicture_alloc';
 
 function av_frame_alloc: PAVFrame; cdecl; external AVUTIL_LIBNAME name 'av_frame_alloc';
 procedure av_frame_free(frame: PPAVFrame); cdecl; external AVUTIL_LIBNAME name 'av_frame_free';
 
 function sws_getContext(srcW, srcH: Integer; srcFormat: TAVPixelFormat; dstW, dstH: Integer; dstFormat: TAVPixelFormat;
-                                  flags: Integer; srcFilter, dstFilter: PSwsFilter;
-                                  param: PDouble): PSwsContext; cdecl; external SWSCALE_LIBNAME name 'sws_getContext';
+    flags: Integer; srcFilter, dstFilter: PSwsFilter; param: PDouble): PSwsContext; cdecl; external SWSCALE_LIBNAME
+    name 'sws_getContext';
 function sws_scale(c: PSwsContext; const srcSlice: PPByte; const srcStride: PInteger; srcSliceY, srcSliceH: Integer;
-                    const dst: PPByte; const dstStride: PInteger): Integer; cdecl; external SWSCALE_LIBNAME name 'sws_scale';
+    const dst: PPByte; const dstStride: PInteger): Integer; cdecl; external SWSCALE_LIBNAME name 'sws_scale';
 
 implementation
 
