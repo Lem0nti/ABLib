@@ -164,7 +164,8 @@ begin
     if FInterval<>Value then
     begin
       FInterval:=Value;
-      FWaitForStop.SetEvent;
+      if assigned(SubThread) then
+        FWaitForStop.SetEvent;
     end;
   finally
     Unlock;

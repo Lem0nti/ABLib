@@ -10,6 +10,10 @@ uses
 type
   TRTSPReceiver=class;
 
+    /// <summary>
+    /// Класс для логического "пинга" видеокамер.
+    /// Многие видеокамеры требуют периодического сигнала от потребителей видео, чтобы продолжать трансляцию.
+    /// </summary>
   TLogicPing=class(TThread)
   private
     FLock: TCriticalSection;
@@ -41,7 +45,7 @@ type
     RTSPParser: TRTSPParser;
     ThreadQueue: TThreadQueue;
     CurSession,TrackLink: AnsiString;
-    FConnectionString,realm,nonce: string;
+    FConnectionString,realm,nonce,FLastError: string;
     FSocket: TSocket;
     procedure Connect;
     function CSeq: AnsiString;
@@ -55,13 +59,15 @@ type
     function GetConnectionString: string;
     procedure SetActive(const Value: boolean);
     procedure SetConnectionString(const Value: string);
+    procedure SetThisLastError(ALastError: string);
   public
     Link: TURI;
     constructor Create(AOutputQueue: TThreadQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
     destructor Destroy; override;
+    function LastError: string;
     function LastFrameTime: int64;
     function ReadSize: Cardinal;
-    procedure SendSetParameter;
+    function SendSetParameter: string;
     procedure SendTeardown;
     procedure SetOutputQueue(Queue: TBaseQueue);
     property Active: boolean read GetActive write SetActive;
@@ -75,7 +81,7 @@ var
 {$ENDIF}
 
 const
-  USER_AGENT = 'ABL.TRTSPReceiver 1.0.5';
+  USER_AGENT = 'ABL.TRTSPReceiver 1.0.7';
   SCommand: array [0..4] of String = ('DESCRIBE', 'PLAY', 'SET_PARAMETER', 'SETUP', 'TEARDOWN');
 
 implementation
@@ -111,6 +117,7 @@ end;
 procedure TLogicPing.Execute;
 var
   aStopped: TWaitResult;
+  tmpResult: integer;
 begin
   FreeOnTerminate:=true;
   try
@@ -118,15 +125,22 @@ begin
       while not Terminated do
         try
           aStopped:=FWaitForStop.WaitFor(FTimeOut);
-          if aStopped=wrTimeOut then
-            FParent.SendSetParameter
+          if (aStopped=wrTimeOut) and assigned(FParent) then
+          begin
+            tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
+            if tmpResult<0 then
+            begin
+              SendErrorMsg('TLogicPing.Execute 135: Host='+FParent.Link.Host+', SendSetParameter='+IntToStr(-tmpResult)+', Stop');
+              break;
+            end;
+          end
           else
             break;
         except on e: Exception do
-          SendErrorMsg('TLogicPing.Execute 126 '+e.ClassName+' - '+e.Message);
+          SendErrorMsg('TLogicPing.Execute 145: '+e.ClassName+' - '+e.Message);
         end
     else
-      SendErrorMsg('TLogicPing.Execute 129: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
+      SendErrorMsg('TLogicPing.Execute 148: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
   finally
     Terminate;
   end;
@@ -182,6 +196,7 @@ begin
       SendErrorMsg('TRTSPReceiver.Connect 182: '+{$IFDEF UNIX}'connect error '+IntToStr(e){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF})
     else
     begin
+      FCSeq := 1;
       w:=SendReceiveMethod('OPTIONS',AnsiString(Link.GetFullURI),'');
       if w='' then
         SendErrorMsg('TRTSPReceiver.Connect 187: empty OPTIONS request')
@@ -289,6 +304,17 @@ begin
     result:=FConnectionString;
   finally
     Unlock;
+  end;
+end;
+
+function TRTSPReceiver.LastError: string;
+begin
+  FLock.Enter;
+  try
+    result:=FLastError;
+    FLastError:='';
+  finally
+    FLock.Leave;
   end;
 end;
 
@@ -528,11 +554,14 @@ begin
         {$IFNDEF FPC}
         w:=GetLastError;
         {$ENDIF}
-        SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 531: '+string(AText)+' - '+IntToStr({$IFDEF FPC}sr){$ELSE}w)+':'+SysErrorMessage(w){$ENDIF});
+        if w=10054 then
+          result:='-10054'
+        else
+          SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 556: '+string(AText)+' - '+IntToStr({$IFDEF FPC}sr){$ELSE}w)+':'+SysErrorMessage(w){$ENDIF});
       end;
     end;
   except on e: Exception do
-    SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 535: '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 560: '+e.ClassName+' - '+e.Message);
   end;
 end;
 
@@ -619,17 +648,23 @@ begin
       begin
         result:=SendReceive(AMethod+' '+AURL+' RTSP/1.0'#13#10+ht+'CSeq: '+CSeq+#13#10'Authorization: '+authSeq+#13#10'User-Agent: '+AnsiString(USER_AGENT)+#13#10#13#10);
         if pos('401',copy(result,1,32))>0 then
+        begin
           SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 622: неправильный логин-пароль'#13#10+result);
+          SetThisLastError('неправильный логин-пароль');
+        end;
       end;
     end
     else
+    begin
       SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 626: необходима авторизация');
+      SetThisLastError('необходима авторизация');
+    end;
   end;
 end;
 
-procedure TRTSPReceiver.SendSetParameter;
+function TRTSPReceiver.SendSetParameter: string;
 begin
-  SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
+  result:=SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
 end;
 
 function TRTSPReceiver.SendSetup: boolean;
@@ -677,7 +712,10 @@ end;
 procedure TRTSPReceiver.SendTeardown;
 begin
   if assigned(LogicPing) then
+  begin
+    LogicPing.FParent:=nil;
     LogicPing.Stop;
+  end;
   SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
   TCPReader.Stop;
 end;
@@ -688,7 +726,6 @@ begin
   try
     if Value then
     begin
-      FCSeq := 1;
       if FConnectionString='' then
         SendErrorMsg('TRTSPReceiver::SetActive 693: no connection string')
       else if not TCPReader.Active then
@@ -708,6 +745,16 @@ begin
     FConnectionString:=Value;
     if FConnectionString<>'' then
       Link.Apply(Value);
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TRTSPReceiver.SetThisLastError(ALastError: string);
+begin
+  FLock.Enter;
+  try
+    FLastError:=ALastError;
   finally
     FLock.Leave;
   end;

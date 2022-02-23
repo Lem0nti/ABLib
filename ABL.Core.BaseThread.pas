@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.BaseObject, ABL.Core.BaseQueue, ABL.Core.ThreadQueue, Classes, SysUtils,
-  {$IFDEF UNIX}fgl, linux, unixtype{$ELSE}Generics.Collections, Windows{$ENDIF};
+  {$IFDEF UNIX}fgl, linux, unixtype{$ELSE}Generics.Collections, Windows{$ENDIF}, SyncObjs;
 
 type
   TSubThread=class;
@@ -16,7 +16,9 @@ type
     function GetPerformance: Real;
     function GetActive: boolean;
     procedure SetActive(const Value: boolean);
+    function GetIterationCount: Cardinal;
   protected
+    FIterationCounter: Cardinal;
     FTerminated: boolean;
     SubThread: TSubThread;
     FPerformance: Real;
@@ -33,7 +35,6 @@ type
     function StopWatch: int64;
     function Terminated: boolean;
   public
-    FIterationCounter: Cardinal;
     constructor Create(AName: string = ''); overload; override;
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); reintroduce; overload; virtual;
     destructor Destroy; override;
@@ -43,6 +44,7 @@ type
     procedure SetOutputQueue(Queue: TBaseQueue); virtual;
     procedure Stop; virtual;
     property Active: boolean read GetActive write SetActive;
+    property IterationCount: Cardinal read GetIterationCount;
     property LastExec: TDateTime read GetLastExec;
     property Performance: Real read GetPerformance;
   end;
@@ -100,13 +102,23 @@ begin
   result:=assigned(SubThread);
 end;
 
+function TBaseThread.GetIterationCount: Cardinal;
+begin
+  FLock.Enter;
+  try
+    Result:=FIterationCounter;
+  finally
+    FLock.Leave;
+  end;
+end;
+
 function TBaseThread.GetLastExec: TDateTime;
 begin
-  Lock;
+  FLock.Enter;
   try
     result:=FLastExec;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 
@@ -124,9 +136,9 @@ procedure TBaseThread.IncreaseIteration(ATime: int64);
 begin
   Time100:=Time100+ATime;
   inc(FIterationCounter);
-  if FIterationCounter div 100=FIterationCounter/100 then
+  if FIterationCounter mod 50=0 then
   begin
-    FPerformance:=(Time100/100)/iCounterPerMSec;
+    FPerformance:=(Time100/50)/iCounterPerMSec;
     Time100:=0;
   end;
 end;

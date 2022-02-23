@@ -63,7 +63,7 @@ begin
   FLogQueueValue:=8;
   FLogMem:=128;
   FLogPerformanceValue:=16;
-  FInterval:=30000;
+  FInterval:=60000;
   FEnabled:=true;
   Active:=true;
 end;
@@ -94,7 +94,7 @@ begin
     begin
       tmpName:=Queue.Name;
       if tmpName<>'' then
-        SendDebugMsg('TThreadController.DoExecute 97, '+tmpName+'='+IntToStr(cnt));
+        SendPerformanceMsg('TThreadController.DoExecute 97, '+tmpName+'='+IntToStr(cnt));
     end;
   end;
   for Thread in ThreadList do
@@ -104,7 +104,7 @@ begin
     begin
       tmpName:=Thread.Name;
       if tmpName<>'' then
-        SendDebugMsg('TThreadController.DoExecute 106, '+tmpName+'='+FormatFloat('0.0000',perf));
+        SendPerformanceMsg('TThreadController.DoExecute 107, '+tmpName+'='+FormatFloat('0.0000',perf)+', '+IntToStr(Thread.IterationCount));
     end;
   end;
   {$IFNDEF FPC}
@@ -116,9 +116,7 @@ begin
     begin
       CurMem:=pmc^.WorkingSetSize div (1024*1024);
       if CurMem>tmpMem then
-      begin
-        SendErrorMsg('TThreadController.DoExecute 119, использование ОЗУ: '+IntToStr(CurMem)+' Mb');
-      end;
+        SendPerformanceMsg('TThreadController.DoExecute 119, использование ОЗУ: '+IntToStr(CurMem)+' Mb');
     end;
   finally
     FreeMem(pmc);

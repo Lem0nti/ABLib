@@ -11,6 +11,7 @@ object MainFM: TMainFM
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object PageControl: TPageControl
@@ -21,10 +22,8 @@ object MainFM: TMainFM
     ActivePage = tsVS_Render
     Align = alClient
     TabOrder = 0
-    ExplicitHeight = 299
     object tsCore: TTabSheet
       Caption = 'Core'
-      ExplicitHeight = 271
       object bCreate: TButton
         Left = 16
         Top = 8
@@ -43,7 +42,6 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitHeight = 247
       end
       object bSend: TButton
         Left = 16
@@ -58,7 +56,6 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
-      ExplicitHeight = 271
       object mIOLog: TMemo
         Left = 192
         Top = 18
@@ -68,7 +65,6 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitHeight = 247
       end
       object leText: TLabeledEdit
         Left = 11
@@ -91,9 +87,8 @@ object MainFM: TMainFM
       end
     end
     object tsVS_Render: TTabSheet
-      Caption = 'VS + Render'
+      Caption = 'VS + Render + IA'
       ImageIndex = 2
-      ExplicitHeight = 271
       object pnlVideo: TPanel
         Left = 16
         Top = 56
@@ -103,7 +98,39 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'pnlVideo'
         TabOrder = 0
-        ExplicitHeight = 201
+        OnResize = pnlVideoResize
+        object pnlLeftTop: TPanel
+          Left = 0
+          Top = 0
+          Width = 185
+          Height = 41
+          Caption = 'pnlLeftTop'
+          TabOrder = 0
+        end
+        object pnlRightTop: TPanel
+          Left = 328
+          Top = 0
+          Width = 185
+          Height = 41
+          Caption = 'pnlRightTop'
+          TabOrder = 1
+        end
+        object pnlLeftBottom: TPanel
+          Left = 0
+          Top = 200
+          Width = 185
+          Height = 41
+          Caption = 'pnlLeftBottom'
+          TabOrder = 2
+        end
+        object pnlRightBottom: TPanel
+          Left = 368
+          Top = 208
+          Width = 185
+          Height = 41
+          Caption = 'pnlRightBottom'
+          TabOrder = 3
+        end
       end
       object leRTSPLink: TLabeledEdit
         Left = 88
@@ -135,7 +162,7 @@ object MainFM: TMainFM
     IPVersion = Id_IPv4
     Port = 12345
     ReadTimeout = -1
-    Left = 332
-    Top = 136
+    Left = 36
+    Top = 24
   end
 end

@@ -4,8 +4,10 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, libavcodec,
-  ABL.Core.QueueMultiplier, ABL.Core.ThreadController, Vcl.ComCtrls, ABL.Render.DirectRender,
+  ABL.IA.ImageCutter, ABL.IA.IfMotion,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, ABL.VS.FFMPEG, //libavcodec,
+   ABL.VS.DecodedMultiplier,
+  ABL.Core.QueueMultiplier, ABL.Core.ThreadController, Vcl.ComCtrls, ABL.Render.DirectRender, ABL.IA.ImageResize,
   Vcl.StdCtrls, eDirect_Cl, eMessage, eTimer_Cl, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
   Vcl.ExtCtrls, ABL.IO.TCPReader, eTCPToLog_Cl, Vcl.Buttons, ABL.VS.VideoDecoder, ABL.Core.ThreadQueue;
 
@@ -25,11 +27,17 @@ type
     pnlVideo: TPanel;
     leRTSPLink: TLabeledEdit;
     bGo: TBitBtn;
+    pnlLeftTop: TPanel;
+    pnlRightTop: TPanel;
+    pnlLeftBottom: TPanel;
+    pnlRightBottom: TPanel;
     procedure bCreateClick(Sender: TObject);
     procedure bSendClick(Sender: TObject);
     procedure bSendTCPClick(Sender: TObject);
     procedure leRTSPLinkKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure bGoClick(Sender: TObject);
+    procedure pnlVideoResize(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
     Direct1,Direct2: TDirect;
@@ -39,7 +47,11 @@ type
     TCPToLog: TTCPToLog;
     RTSPReceiver: TRTSPReceiver;
     VideoDecoder: TVideoDecoder;
-    Render: TDirectRender;
+    Render,ResizeRender,LeftIfRender,RightIfRender: TDirectRender;
+    DecodedMultiplier: TDecodedMultiplier;
+    ImageResize: TImageResize;
+    ImageCutter: TImageCutter;
+    IfMotionLeft, IfMotionRight: TIfMotion;
     procedure ABLThreadExecute(var Message: TMessage); message WM_ABL_THREAD_EXECUTED;
     procedure Multiply(AInputData: Pointer; var AResultData: Pointer);
   public
@@ -90,12 +102,56 @@ begin
   else
     RTSPReceiver:=TRTSPReceiver.Create(TThreadQueue(ThreadController.QueueByName('Receiver_Output')),'RTSPReceiver',leRTSPLink.Text);
   if not assigned(VideoDecoder) then
-    VideoDecoder:=TVideoDecoder.Create(ThreadController.QueueByName('Receiver_Output'),nil,AV_CODEC_ID_H264,'VideoDecoder');
+    VideoDecoder:=TVideoDecoder.Create(ThreadController.QueueByName('Receiver_Output'),ThreadController.QueueByName('Decoder_Output'),
+        AV_CODEC_ID_H264,'VideoDecoder');
+  if not assigned(DecodedMultiplier) then
+    DecodedMultiplier:=TDecodedMultiplier.Create(ThreadController.QueueByName('Decoder_Output'),'DecodedMultiplier');
   if not assigned(Render) then
   begin
     Render:=TDirectRender.Create('Render');
-    Render.Handle:=pnlVideo.Handle;
-    VideoDecoder.SetOutputQueue(Render.InputQueue);
+    Render.Handle:=pnlLeftTop.Handle;
+    DecodedMultiplier.AddReceiver(Render.InputQueue);
+  end;
+  if not assigned(ImageResize) then
+  begin
+    ImageResize:=TImageResize.Create(ThreadController.QueueByName('Resize_Input'),nil);
+    ImageResize.SetSize(320,240);
+    DecodedMultiplier.AddReceiver(ImageResize.InputQueue);
+  end;
+  //ресайз - справа-сверху
+  if not assigned(ResizeRender) then
+  begin
+    ResizeRender:=TDirectRender.Create('ResizeRender');
+    ResizeRender.Handle:=pnlRightTop.Handle;
+    ImageResize.SetOutputQueue(ResizeRender.InputQueue);
+  end;
+  if not assigned(ImageCutter) then
+  begin
+    ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter_Input'),nil);
+    DecodedMultiplier.AddReceiver(ImageCutter.InputQueue);
+  end;
+  if not assigned(IfMotionLeft) then
+  begin
+    IfMotionLeft:=TIfMotion.Create(ThreadController.QueueByName('IfMotionLeft_Input'),nil);
+    ImageCutter.AddReceiver(IfMotionLeft.InputQueue,Rect(6000,1000,9000,4000));
+  end;
+  if not assigned(IfMotionRight) then
+  begin
+    IfMotionRight:=TIfMotion.Create(ThreadController.QueueByName('IfMotionRight_Input'),nil);
+    ImageCutter.AddReceiver(IfMotionRight.InputQueue,Rect(1000,6000,4000,9000));
+  end;
+  //куттер+ифмоушн - снизу
+  if not assigned(LeftIfRender) then
+  begin
+    LeftIfRender:=TDirectRender.Create('LeftIfRender');
+    LeftIfRender.Handle:=pnlLeftBottom.Handle;
+    IfMotionLeft.SetOutputQueue(LeftIfRender.InputQueue);
+  end;
+  if not assigned(RightIfRender) then
+  begin
+    RightIfRender:=TDirectRender.Create('RightIfRender');
+    RightIfRender.Handle:=pnlRightBottom.Handle;
+    IfMotionRight.SetOutputQueue(RightIfRender.InputQueue);
   end;
 end;
 
@@ -133,6 +189,16 @@ begin
   IdTCPClient.Disconnect;
 end;
 
+procedure TMainFM.FormDestroy(Sender: TObject);
+begin
+  if assigned(RTSPReceiver) then
+    RTSPReceiver.Free;
+  if assigned(VideoDecoder) then
+    VideoDecoder.Free;
+  if assigned(DecodedMultiplier) then
+    DecodedMultiplier.Free;
+end;
+
 procedure TMainFM.leRTSPLinkKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   if Key=13 then
@@ -146,6 +212,22 @@ begin
   New(tmpString);
   setstring(tmpString^, PChar(PString(AInputData)^), length(PString(AInputData)^));
   AResultData:=tmpString;
+end;
+
+procedure TMainFM.pnlVideoResize(Sender: TObject);
+begin
+  pnlLeftTop.Width:=pnlVideo.Width div 2;
+  pnlLeftTop.Height:=pnlVideo.Height div 2;
+  pnlRightTop.Width:=pnlLeftTop.Width;
+  pnlRightTop.Left:=pnlLeftTop.Width;
+  pnlRightTop.Height:=pnlLeftTop.Height;
+  pnlLeftBottom.Top:=pnlLeftTop.Height;
+  pnlLeftBottom.Height:=pnlLeftTop.Height;
+  pnlLeftBottom.Width:=pnlLeftTop.Width;
+  pnlRightBottom.Top:=pnlLeftTop.Height;
+  pnlRightBottom.Left:=pnlLeftTop.Width;
+  pnlRightBottom.Height:=pnlLeftTop.Height;
+  pnlRightBottom.Width:=pnlLeftTop.Width;
 end;
 
 end.
