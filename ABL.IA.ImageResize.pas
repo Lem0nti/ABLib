@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, Types, SyncObjs;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, Types, SyncObjs, ABL.Core.BaseQueue;
 
 type
   TImageResize=class(TDirectThread)
@@ -16,6 +16,7 @@ type
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
+    constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     procedure SetSize(AWidth, AHeight: word);
     property Height: word read GetHeight write SetHeight;
     property Width: word read GetWidth write SetWidth;
@@ -24,6 +25,12 @@ type
 implementation
 
 { TImageResize }
+
+constructor TImageResize.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
+begin
+  inherited Create(AInputQueue,AOutputQueue,AName);
+  Active:=true;
+end;
 
 procedure TImageResize.DoExecute(var AInputData, AResultData: Pointer);
 var
@@ -35,8 +42,8 @@ begin
   DecodedFrame:=PDecodedFrame(AInputData);
   try
     FLock.Enter;
-    tmpWidth=FWidth;
-    tmpHeight=FHeight;
+    tmpWidth:=FWidth;
+    tmpHeight:=FHeight;
     FLock.Leave;
     wh:=DecodedFrame.Width/tmpWidth;
     hh:=DecodedFrame.Height/tmpHeight;
@@ -52,7 +59,7 @@ begin
       for y:=0 to tmpHeight-1 do
         for x:=0 to tmpWidth-1 do
         begin
-          OffsetFrom=(round(y*hh)*DecodedFrame.Width+round(x*wh))*3;
+          OffsetFrom:=(round(y*hh)*DecodedFrame.Width+round(x*wh))*3;
           Move(PByte(NativeUInt(DecodedFrame.Data)+OffsetFrom)^,PByte(NativeUInt(OutputFrame.Data)+OffsetTo)^,3);
           OffsetTo:=OffsetTo+3;
         end;
@@ -69,8 +76,8 @@ begin
             Move(PByte(NativeUInt(DecodedFrame.Data)+OffsetFrom)^,PByte(NativeUInt(DecodedFrame.Data)+OffsetTo)^,3);
             OffsetTo:=OffsetTo+3;
           end;
-        DecodedFrame.Width=tmpWidth;
-        DecodedFrame.Height=tmpHeight;
+        DecodedFrame.Width:=tmpWidth;
+        DecodedFrame.Height:=tmpHeight;
       end;
       AResultData:=AInputData;
       AInputData:=nil;

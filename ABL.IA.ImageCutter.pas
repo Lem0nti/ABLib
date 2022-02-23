@@ -17,6 +17,7 @@ type
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
+    constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     procedure AddReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
   end;
 
@@ -36,12 +37,18 @@ begin
   end;
 end;
 
+constructor TImageCutter.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
+begin
+  inherited Create(AInputQueue,AOutputQueue,AName);
+  Active:=true;
+end;
+
 procedure TImageCutter.DoExecute(var AInputData, AResultData: Pointer);
 var
   DecodedFrame,OutputFrame: PDecodedFrame;
   AbsRect, ACutRect: TRect;
   y,q,hl: integer;
-  OutputQueue: TBaseQueue;
+  tmpOutputQueue: TBaseQueue;
 begin
   DecodedFrame:=PDecodedFrame(AInputData);
   try
@@ -50,13 +57,13 @@ begin
     begin
       FLock.Enter;
       hl:=high(ReceiverList);
-      if q<hl then
+      if q<=hl then
       begin
         ACutRect:=ReceiverList[q].CutRect;
-        OutputQueue:=ReceiverList[q].Receiver;
+        tmpOutputQueue:=ReceiverList[q].Receiver;
       end;
       FLock.Leave;
-      if q>=hl then
+      if q>hl then
         break
       else
       begin
@@ -71,8 +78,10 @@ begin
         OutputFrame.Time:=DecodedFrame.Time;
         GetMem(OutputFrame^.Data,OutputFrame.Width*OutputFrame.Height*3);
         for y := AbsRect.Top to AbsRect.Bottom do
-          Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
+          Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
+              PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
         inc(q);
+        tmpOutputQueue.Push(OutputFrame);
       end;
     end;
   finally
