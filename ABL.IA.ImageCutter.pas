@@ -17,7 +17,7 @@ type
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
-    constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
+    constructor Create(AInputQueue: TBaseQueue; AName: string = ''); reintroduce;
     procedure AddReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
   end;
 
@@ -37,9 +37,9 @@ begin
   end;
 end;
 
-constructor TImageCutter.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
+constructor TImageCutter.Create(AInputQueue: TBaseQueue; AName: string);
 begin
-  inherited Create(AInputQueue,AOutputQueue,AName);
+  inherited Create(AInputQueue,nil,AName);
   Active:=true;
 end;
 

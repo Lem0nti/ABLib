@@ -4,7 +4,6 @@ interface
 
 uses
   ABL.Core.DirectThread, ABL.VS.FFMPEG,
-  //libavcodec, libavutil_frame, libswscale, libavutil_pixfmt,
   ABL.Core.BaseQueue, ABL.IO.IOTypes,
   ABL.VS.VSTypes, ABL.Core.Debug, SysUtils;
 
