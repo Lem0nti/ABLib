@@ -19,6 +19,7 @@ type
   public
     constructor Create(AInputQueue: TBaseQueue; AName: string = ''); reintroduce;
     procedure AddReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
+    procedure RemoveReceiver(AReceiver: TBaseQueue);
   end;
 
 implementation
@@ -55,6 +56,7 @@ begin
     q:=0;
     while true do
     begin
+      tmpOutputQueue:=nil;
       FLock.Enter;
       hl:=high(ReceiverList);
       if q<=hl then
@@ -72,20 +74,40 @@ begin
             Round(ACutRect.Right/10000*DecodedFrame.Width),Round((ACutRect.Bottom)/10000*DecodedFrame.Height));
         while AbsRect.Width mod 4 > 0 do
           AbsRect.Width:=AbsRect.Width+1;
-        new(OutputFrame);
-        OutputFrame.Width:=AbsRect.Width;
-        OutputFrame.Height:=AbsRect.Height;
-        OutputFrame.Time:=DecodedFrame.Time;
-        GetMem(OutputFrame^.Data,OutputFrame.Width*OutputFrame.Height*3);
-        for y := AbsRect.Top to AbsRect.Bottom do
-          Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
-              PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
+        if assigned(tmpOutputQueue) then
+        begin
+          new(OutputFrame);
+          OutputFrame.Width:=AbsRect.Width;
+          OutputFrame.Height:=AbsRect.Height;
+          OutputFrame.Time:=DecodedFrame.Time;
+          GetMem(OutputFrame^.Data,OutputFrame.Width*OutputFrame.Height*3);
+          for y := AbsRect.Top to AbsRect.Bottom do
+            Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
+                PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
+          tmpOutputQueue.Push(OutputFrame);
+        end;
         inc(q);
-        tmpOutputQueue.Push(OutputFrame);
       end;
     end;
   finally
     FreeMem(DecodedFrame.Data);
+  end;
+end;
+
+procedure TImageCutter.RemoveReceiver(AReceiver: TBaseQueue);
+var
+  q: integer;
+begin
+  FLock.Enter;
+  try
+    for q := 0 to Length(ReceiverList)-1 do
+      if ReceiverList[q].Receiver=AReceiver then
+      begin
+        Delete(ReceiverList,q,1);
+        break;
+      end;
+  finally
+    FLock.Leave;
   end;
 end;
 
