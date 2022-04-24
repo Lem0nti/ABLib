@@ -148,7 +148,8 @@ begin
         FreeMem(CFrame^.Data);
     end;
   except on e: Exception do
-    SendErrorMsg('TVideoDecoder.DoExecute 154, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+': '+e.ClassName+' - '+e.Message);
+    if not FTerminated then
+      SendErrorMsg('TVideoDecoder.DoExecute 152, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
   end;
 end;
 

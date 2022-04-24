@@ -63,7 +63,7 @@ begin
   FLogQueueValue:=8;
   FLogMem:=128;
   FLogPerformanceValue:=16;
-  FInterval:=60000;
+  FInterval:=12000;
   FEnabled:=true;
   Active:=true;
 end;

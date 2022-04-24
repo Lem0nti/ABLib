@@ -235,7 +235,7 @@ begin
                     inc(BadFrameCount);
                     if BadFrameCount>=224 then
                     begin
-                      SendErrorMsg('TRTSPParser.DoExecute 238: неподдерживаемый формат, FrameType='+IntToStr(FrameType));
+                      SendErrorMsg('TRTSPParser('+FName+').DoExecute 238: неподдерживаемый формат, FrameType='+IntToStr(FrameType)+', PacketType='+IntToStr(PacketType));
                       BadFrameCount:=0;
                     end;
                   end;

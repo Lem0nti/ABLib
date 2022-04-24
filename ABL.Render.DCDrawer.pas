@@ -63,7 +63,7 @@ begin
       FLock.Enter;
       try
         GetWindowRect(FHandle,ppRect);
-        if ppRect.Width>0 then
+        if (ppRect.Width>0) and (ppRect.Height>0) then
         begin
           while ppRect.Width mod 4 > 0 do
             ppRect.Width:=ppRect.Width+1;
