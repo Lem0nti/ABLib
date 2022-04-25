@@ -197,7 +197,7 @@ begin
                           end
                           else
                           begin
-                            SendErrorMsg('TRTSPParser.DoExecute 200: нет SPS и PPS кадров');
+                            SendErrorMsg('TRTSPParser('+FName+').DoExecute 200: нет SPS и PPS кадров');
                             SubThread.Terminate;
                             Dispose(ResultData);
                             exit;
@@ -257,7 +257,7 @@ begin
                 AStringForLog:='';
               if AStringForLog<>'' then
                 AStringForLog:=' ('+AStringForLog+')';
-              SendErrorMsg('TRTSPParser.DoExecute 260: неподдерживаемый формат, PayloadType='+IntToStr(PayloadType)+AStringForLog);
+              SendErrorMsg('TRTSPParser('+FName+').DoExecute 260: неподдерживаемый формат, PayloadType='+IntToStr(PayloadType)+AStringForLog);
               SubThread.Terminate;
               BadFrameCount:=0;
               //всё что в буффере - в лог

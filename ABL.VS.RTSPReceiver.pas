@@ -198,13 +198,13 @@ begin
     Addr.sin_addr.S_addr:=inet_addr(PAnsiChar(AnsiString(Link.Host))); // ip
     if WinSock.connect(FSocket,Addr,SizeOf(Addr))=SOCKET_ERROR then
     {$ENDIF}
-      SendErrorMsg('TRTSPReceiver.Connect 182: '+{$IFDEF UNIX}'connect error '+IntToStr(e){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF})
+      SendErrorMsg('TRTSPReceiver.Connect 201 ('+Link.GetFullURI+'): '+{$IFDEF UNIX}'connect error '+IntToStr(e){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF})
     else
     begin
       FCSeq := 1;
       w:=SendReceiveMethod('OPTIONS',AnsiString(Link.GetFullURI),'');
       if w='' then
-        SendErrorMsg('TRTSPReceiver.Connect 187: empty OPTIONS request')
+        SendErrorMsg('TRTSPReceiver.Connect 207: empty OPTIONS request')
       else
       begin
         sl:=TStringList.Create;
@@ -212,14 +212,14 @@ begin
           sl.Text:=StringReplace(w,': ','=',[rfReplaceAll]);
           w:=trim(sl.Values['Public']);
           if w='' then
-            SendErrorMsg('TRTSPReceiver.Connect 195: пустой список команд камеры '#13#10+sl.Text)
+            SendErrorMsg('TRTSPReceiver.Connect 215: пустой список команд камеры '#13#10+sl.Text)
           else
           begin
             sl.Text:=StringReplace(StringReplace(w,', ',#13#10,[rfReplaceAll]),',',#13#10,[rfReplaceAll]);
             //если нет какой-нибудь из нужных команд - сообщить об этом в лог
             for q:=0 to length(SCommand)-1 do
               if sl.IndexOf(SCommand[q])=-1 then
-                SendErrorMsg('TRTSPReceiver.Connect 202: '+Link.GetFullURI+' не поддерживает команду '+SCommand[q]);
+                SendErrorMsg('TRTSPReceiver.Connect 222: '+Link.GetFullURI+' не поддерживает команду '+SCommand[q]);
           end;
         finally
           FreeAndNil(sl);
@@ -228,14 +228,14 @@ begin
           if SendSetup then
             SendPlay
           else
-            SendErrorMsg('TRTSPReceiver.Connect 211: SendSetup=false')
+            SendErrorMsg('TRTSPReceiver.Connect 231: SendSetup=false')
         else
-          SendErrorMsg('TRTSPReceiver.Connect 213: SendDescribe=false');
+          SendErrorMsg('TRTSPReceiver.Connect 233: SendDescribe=false');
       end;
     end;
   end
   else
-    SendErrorMsg('TRTSPReceiver.Connect 218: '+
+    SendErrorMsg('TRTSPReceiver.Connect 238: '+
         {$IFDEF UNIX}'socket error '+IntToStr(FSocket){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF});
 end;
 
@@ -497,18 +497,20 @@ begin
     try
       StrNum:='498';
       w:=SendReceiveMethod('PLAY',AnsiString(Link.GetFullURI),'Session: '+CurSession);
-      StrNum:='500';
       if pos('200 OK',w)>0 then
       begin
         StrNum:='503';
         SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 504: 200 OK');
-        StrNum:='505';
         TCPReader.SetAcceptedSocket(FSocket);
         StrNum:='507';
         if assigned(LogicPing) then
         begin
           StrNum:='510';
-          LogicPing.Stop;
+          try
+            LogicPing.Stop;
+          except on e: Exception do
+            SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 512, LogicPing.Stop: '+e.ClassName+' - '+e.Message);
+          end;
         end;
         StrNum:='513';
         LogicPing:=TLogicPing.Create(self,PingInterval);
@@ -728,14 +730,25 @@ begin
 end;
 
 procedure TRTSPReceiver.SendTeardown;
+var
+  StrNum: string;
 begin
-  if assigned(LogicPing) then
-  begin
-    LogicPing.FParent:=nil;
-    LogicPing.Stop;
+  try
+    StrNum:='737';
+    if assigned(LogicPing) then
+    begin
+      StrNum:='740';
+      LogicPing.FParent:=nil;
+      LogicPing.Stop;
+      LogicPing:=nil;
+    end;
+    StrNum:='745';
+    SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
+    StrNum:='747';
+    TCPReader.Stop;
+  except on e: Exception do
+    SendErrorMsg('TRTSPReceiver.SendTeardown 750: '+e.ClassName+' - '+e.Message);
   end;
-  SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
-  TCPReader.Stop;
 end;
 
 procedure TRTSPReceiver.SetActive(const Value: boolean);
@@ -745,29 +758,25 @@ begin
   FLock.Enter;
   try
     try
-      StrNum:='748';
+      StrNum:='761';
       if Value then
       begin
-        StrNum:='751';
         if FConnectionString='' then
-          SendErrorMsg('TRTSPReceiver::SetActive 753: no connection string')
+          SendErrorMsg('TRTSPReceiver::SetActive 765: no connection string')
         else
         begin
-          StrNum:='756';
+          StrNum:='768';
           if not TCPReader.Active then
-          begin
-            StrNum:='759';
             Connect;
-          end;
         end;
       end
       else
       begin
-        StrNum:='766';
+        StrNum:='775';
         SendTeardown;
       end;
     except on e: Exception do
-      SendErrorMsg('TRTSPReceiver.SetActive 770, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TRTSPReceiver.SetActive 779, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
     end;
   finally
     FLock.Leave;
