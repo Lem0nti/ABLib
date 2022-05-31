@@ -118,38 +118,48 @@ procedure TLogicPing.Execute;
 var
   aStopped: TWaitResult;
   tmpResult: integer;
-  StrNum: string;
+  StrNum,tmpHost: string;
 begin
   FreeOnTerminate:=true;
   try
     StrNum:='125';
-    if FTimeOut>=10000 then
+    tmpHost:=FParent.Link.Host;
+    if FTimeOut<=10000 then
+    begin
+      SendErrorMsg('TLogicPing.Execute 128: слишком маленький таймаут ('+tmpHost+') - '+IntToStr(FTimeOut div 1000));
+      FTimeOut:=60000;
+    end;
       while not Terminated do
         try
-          StrNum:='129';
           aStopped:=FWaitForStop.WaitFor(FTimeOut);
           if (aStopped=wrTimeOut) and assigned(FParent) then
           begin
-            StrNum:='133';
-            tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
-            StrNum:='135';
+            StrNum:='136';
+            try
+              tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
+            except on e: Exception do
+              begin
+                SendDebugMsg('TLogicPing.Execute 142: unassigend FParent for '+tmpHost+', stop ping');
+                FParent:=nil;
+                break;
+              end;
+            end;
             if tmpResult<0 then
             begin
-              SendErrorMsg('TLogicPing.Execute 138: Host='+FParent.Link.Host+', SendSetParameter='+IntToStr(-tmpResult)+', Stop');
+              SendErrorMsg('TLogicPing.Execute 148: Host='+tmpHost+', SendSetParameter='+IntToStr(-tmpResult)+', Stop');
               break;
             end;
           end
           else
             break;
         except on e: Exception do
-          SendErrorMsg('TLogicPing.Execute 145, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+': '+e.ClassName+' - '+e.Message);
-        end
-    else
-      SendErrorMsg('TLogicPing.Execute 148: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
+          SendErrorMsg('TLogicPing.Execute 155, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+' ('+tmpHost+'): '+e.ClassName+' - '+e.Message);
+        end;
   finally
     Terminate;
   end;
-  FParent.LogicPing:=nil;
+  if assigned(FParent) then
+    FParent.LogicPing:=nil;
 end;
 
 procedure TLogicPing.Stop;
@@ -499,13 +509,11 @@ begin
       w:=SendReceiveMethod('PLAY',AnsiString(Link.GetFullURI),'Session: '+CurSession);
       if pos('200 OK',w)>0 then
       begin
-        StrNum:='503';
-        SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 504: 200 OK');
+        SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 502: 200 OK');
         TCPReader.SetAcceptedSocket(FSocket);
-        StrNum:='507';
+        StrNum:='504';
         if assigned(LogicPing) then
         begin
-          StrNum:='510';
           try
             LogicPing.Stop;
           except on e: Exception do
@@ -516,10 +524,7 @@ begin
         LogicPing:=TLogicPing.Create(self,PingInterval);
       end
       else
-      begin
-        StrNum:='518';
         SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 519:'#13#10+w);
-      end;
     except on e: Exception do
       SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 522, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
     end;
@@ -684,7 +689,11 @@ end;
 
 function TRTSPReceiver.SendSetParameter: string;
 begin
-  result:=SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
+  try
+    result:=SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
+  except on e: Exception do
+    SendErrorMsg('TRTSPReceiver.SendSetParameter ('+Link.Host+') 693: '+e.ClassName+' - '+e.Message);
+  end;
 end;
 
 function TRTSPReceiver.SendSetup: boolean;
@@ -717,15 +726,15 @@ begin
         CurSession:=AnsiString(q);
         result:=CurSession<>'';
         if not result then
-          SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 665: нет сессии в параметре сессии'#13#10+sl.Text);
+          SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 727: нет сессии в параметре сессии'#13#10+sl.Text);
       end
       else
-        SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 668: нет сессии в ответе, TrackLink='+string(TrackLink)+#13#10+sl.Text);
+        SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 730: нет сессии в ответе, TrackLink='+string(TrackLink)+#13#10+sl.Text);
     finally
       FreeAndNil(sl);
     end;
   except on e: Exception do
-    SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 673: '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 735: '+e.ClassName+' - '+e.Message);
   end;
 end;
 

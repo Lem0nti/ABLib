@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Core.BaseQueue, {$IFDEF UNIX}fgl{$ELSE}Generics.Collections{$ENDIF};
+  ABL.Core.DirectThread, ABL.Core.BaseQueue, {$IFDEF UNIX}fgl{$ELSE}Generics.Collections{$ENDIF}, SyncObjs;
 
 type
   TDataMultiply=procedure(AInputData: Pointer; var AResultData: Pointer) of object;
