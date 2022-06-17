@@ -89,30 +89,27 @@ begin
           try
             StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ADecodedFrame.Width,ADecodedFrame.Height,ADecodedFrame.Data,
                 bmpinfo,DIB_RGB_COLORS,SRCCOPY);
+            SetBkMode(drawDC,TRANSPARENT);
+            lRatio:=1080/ppRect.Width;
+            // Динамический подбор размера шрифта к разрешению экрана
+            Font.Size:= Round(28/lRatio);
+            Font.Color:=clLime;
+            SetTextColor(drawDC,Font.Color);
+            SelectObject(drawDC,Font.Handle);
+            src.Top := Round(10/lRatio);
+            src.Left:= Round(10/lRatio);
+            src.Bottom:=ppRect.Height;
+            src.Right:=ppRect.Width-src.Left;
+            if FCameraName<>'' then
+              DrawText(drawDC,FCameraName,Length(FCameraName),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_LEFT);
             if FShowTime then
             begin
               if (ADecodedFrame.Time>2641367261872)or(ADecodedFrame.Time<0) then
                 SendErrorMsg('TDCDrawer.Draw 92: invalid time - '+IntToStr(ADecodedFrame.Time))
               else
               begin
-                lRatio:=1080/ppRect.Width;
-                // Динамический подбор размера шрифта к разрешению экрана
-                Font.Size:= Round(28/lRatio);
-                Font.Color:=clLime;
-                // Динамический подбор координат, относительно разрешения экрана
-                src.Top := Round(8/lRatio);
-                src.Left:= Round(8/lRatio);
-                src.Bottom:=ppRect.Height;
-                src.Right:=ppRect.Width-src.Left;
-                SetBkMode(drawDC,TRANSPARENT);
-                SetTextColor(drawDC,Font.Color);
-                SelectObject(drawDC,Font.Handle);
-                try
-                  OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ADecodedFrame.Time));
-                  DrawText(drawDC,OutText,Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
-                except on e: Exception do
-                  SendErrorMsg('TDCDrawer.Draw 111: '+e.ClassName+' - '+e.Message);
-                end;
+                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ADecodedFrame.Time));
+                DrawText(drawDC,OutText,Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
               end;
             end;
             if FFocusRect.Left>0 then

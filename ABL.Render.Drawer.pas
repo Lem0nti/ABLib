@@ -14,20 +14,34 @@ type
     procedure SetVerticalMirror(const Value: boolean);
     function GetFocusRect: TRect;
     procedure SetFocusRect(const Value: TRect);
+    function GetCameraName: string;
+    procedure SetCameraName(const Value: string);
   protected
+    FCameraName: string;
     FFocusRect: TRect;
     FShowTime: boolean;
     FVerticalMirror: boolean;
   public
     function Draw(ADecodedFrame: PDecodedFrame): integer; virtual; abstract;
-    property VerticalMirror: boolean read GetVerticalMirror write SetVerticalMirror;
-    property ShowTime: boolean read GetShowTime write SetShowTime;
+    property CameraName: string read GetCameraName write SetCameraName;
     property FocusRect: TRect read GetFocusRect write SetFocusRect;
+    property ShowTime: boolean read GetShowTime write SetShowTime;
+    property VerticalMirror: boolean read GetVerticalMirror write SetVerticalMirror;
   end;
 
 implementation
 
 { TDrawer }
+
+function TDrawer.GetCameraName: string;
+begin
+  FLock.Enter;
+  try
+    result:=FCameraName;
+  finally
+    FLock.Leave;
+  end;
+end;
 
 function TDrawer.GetFocusRect: TRect;
 begin
@@ -54,6 +68,16 @@ begin
   FLock.Enter;
   try
     result:=FVerticalMirror;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TDrawer.SetCameraName(const Value: string);
+begin
+  FLock.Enter;
+  try
+    FCameraName:=Value;
   finally
     FLock.Leave;
   end;

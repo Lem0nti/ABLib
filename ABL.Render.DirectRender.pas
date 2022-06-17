@@ -25,6 +25,8 @@ type
     procedure SetHandle(const Value: THandle);
     procedure SetHeight(const Value: integer);
     procedure SetWidth(const Value: integer);
+    function GetCameraName: string;
+    procedure SetCameraName(const Value: string);
   protected
     {$IFDEF FPC}
     procedure ClearData(AData: Pointer); override;
@@ -36,6 +38,7 @@ type
     procedure SetSize(AWidth, AHeight: integer);
     procedure SkipSecond;
     procedure UpdateScreen;
+    property CameraName: string read GetCameraName write SetCameraName;
     property Drawer: TDrawer read FDrawer;
     property Handle: THandle read GetHandle write SetHandle;
     property Height: integer read GetHeight write SetHeight;
@@ -78,6 +81,7 @@ procedure TDirectRender.DoExecute(var AInputData: Pointer;
 var
   rData: PDecodedFrame;
   DrawResult: integer;
+  tmpStr: string;
 begin
   rData:=PDecodedFrame(AInputData);
   try
@@ -96,9 +100,18 @@ begin
       if assigned(rData) then
         FreeMem(rData^.Data);
     except on e: Exception do
-      SendErrorMsg('TDirectRender.DoExecute 99: '+e.ClassName+' - '+e.Message);
+      begin
+
+        tmpStr:='rData.Width='+IntToStr(rData.Width)+', DrawResult='+IntToStr(DrawResult);
+        SendErrorMsg('TDirectRender('+FName+').DoExecute 103, '+tmpStr+': '+e.ClassName+' - '+e.Message);
+      end;
     end;
   end;
+end;
+
+function TDirectRender.GetCameraName: string;
+begin
+  result:=Drawer.CameraName;
 end;
 
 function TDirectRender.GetHandle: THandle;
@@ -129,6 +142,11 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+procedure TDirectRender.SetCameraName(const Value: string);
+begin
+  Drawer.CameraName:=Value;
 end;
 
 procedure TDirectRender.SetHandle(const Value: THandle);
