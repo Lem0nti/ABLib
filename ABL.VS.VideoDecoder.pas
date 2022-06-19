@@ -136,7 +136,7 @@ begin
         inc(BadDecodeCounter);
         if BadDecodeCounter>=192 then
         begin
-          SendErrorMsg('TVideoDecoder.DoExecute 134, ошибочное декодирование: InSize='+IntToStr(CFrame^.Size)+':'+IntToStr(VideoContext^.
+          SendErrorMsg('TVideoDecoder('+FName+').DoExecute 134, ошибочное декодирование: InSize='+IntToStr(CFrame^.Size)+':'+IntToStr(VideoContext^.
               Width)+'x'+IntToStr(VideoContext^.Height));
           CloseDecoder;
           InitDecoder;
@@ -148,7 +148,8 @@ begin
         FreeMem(CFrame^.Data);
     end;
   except on e: Exception do
-    SendErrorMsg('TVideoDecoder.DoExecute 154, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+': '+e.ClassName+' - '+e.Message);
+    if not FTerminated then
+      SendErrorMsg('TVideoDecoder.DoExecute 152, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
   end;
 end;
 

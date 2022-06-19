@@ -81,7 +81,7 @@ var
 {$ENDIF}
 
 const
-  USER_AGENT = 'ABL.TRTSPReceiver 1.0.7';
+  USER_AGENT = 'ABL.TRTSPReceiver 1.0.8';
   SCommand: array [0..4] of String = ('DESCRIBE', 'PLAY', 'SET_PARAMETER', 'SETUP', 'TEARDOWN');
 
 implementation
@@ -118,33 +118,48 @@ procedure TLogicPing.Execute;
 var
   aStopped: TWaitResult;
   tmpResult: integer;
+  StrNum,tmpHost: string;
 begin
   FreeOnTerminate:=true;
   try
-    if FTimeOut>=10000 then
+    StrNum:='125';
+    tmpHost:=FParent.Link.Host;
+    if FTimeOut<=10000 then
+    begin
+      SendErrorMsg('TLogicPing.Execute 128: слишком маленький таймаут ('+tmpHost+') - '+IntToStr(FTimeOut div 1000));
+      FTimeOut:=60000;
+    end;
       while not Terminated do
         try
           aStopped:=FWaitForStop.WaitFor(FTimeOut);
           if (aStopped=wrTimeOut) and assigned(FParent) then
           begin
-            tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
+            StrNum:='136';
+            try
+              tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
+            except on e: Exception do
+              begin
+                SendDebugMsg('TLogicPing.Execute 142: unassigend FParent for '+tmpHost+', stop ping');
+                FParent:=nil;
+                break;
+              end;
+            end;
             if tmpResult<0 then
             begin
-              SendErrorMsg('TLogicPing.Execute 135: Host='+FParent.Link.Host+', SendSetParameter='+IntToStr(-tmpResult)+', Stop');
+              SendErrorMsg('TLogicPing.Execute 148: Host='+tmpHost+', SendSetParameter='+IntToStr(-tmpResult)+', Stop');
               break;
             end;
           end
           else
             break;
         except on e: Exception do
-          SendErrorMsg('TLogicPing.Execute 145: '+e.ClassName+' - '+e.Message);
-        end
-    else
-      SendErrorMsg('TLogicPing.Execute 148: слишком маленький таймаут ('+FParent.Link.Host+') - '+IntToStr(FTimeOut div 1000));
+          SendErrorMsg('TLogicPing.Execute 155, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+' ('+tmpHost+'): '+e.ClassName+' - '+e.Message);
+        end;
   finally
     Terminate;
   end;
-  FParent.LogicPing:=nil;
+  if assigned(FParent) then
+    FParent.LogicPing:=nil;
 end;
 
 procedure TLogicPing.Stop;
@@ -193,13 +208,13 @@ begin
     Addr.sin_addr.S_addr:=inet_addr(PAnsiChar(AnsiString(Link.Host))); // ip
     if WinSock.connect(FSocket,Addr,SizeOf(Addr))=SOCKET_ERROR then
     {$ENDIF}
-      SendErrorMsg('TRTSPReceiver.Connect 182: '+{$IFDEF UNIX}'connect error '+IntToStr(e){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF})
+      SendErrorMsg('TRTSPReceiver.Connect 201 ('+Link.GetFullURI+'): '+{$IFDEF UNIX}'connect error '+IntToStr(e){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF})
     else
     begin
       FCSeq := 1;
       w:=SendReceiveMethod('OPTIONS',AnsiString(Link.GetFullURI),'');
       if w='' then
-        SendErrorMsg('TRTSPReceiver.Connect 187: empty OPTIONS request')
+        SendErrorMsg('TRTSPReceiver.Connect 207: empty OPTIONS request')
       else
       begin
         sl:=TStringList.Create;
@@ -207,14 +222,14 @@ begin
           sl.Text:=StringReplace(w,': ','=',[rfReplaceAll]);
           w:=trim(sl.Values['Public']);
           if w='' then
-            SendErrorMsg('TRTSPReceiver.Connect 195: пустой список команд камеры '#13#10+sl.Text)
+            SendErrorMsg('TRTSPReceiver.Connect 215: пустой список команд камеры '#13#10+sl.Text)
           else
           begin
             sl.Text:=StringReplace(StringReplace(w,', ',#13#10,[rfReplaceAll]),',',#13#10,[rfReplaceAll]);
             //если нет какой-нибудь из нужных команд - сообщить об этом в лог
             for q:=0 to length(SCommand)-1 do
               if sl.IndexOf(SCommand[q])=-1 then
-                SendErrorMsg('TRTSPReceiver.Connect 202: '+Link.GetFullURI+' не поддерживает команду '+SCommand[q]);
+                SendErrorMsg('TRTSPReceiver.Connect 222: '+Link.GetFullURI+' не поддерживает команду '+SCommand[q]);
           end;
         finally
           FreeAndNil(sl);
@@ -223,14 +238,14 @@ begin
           if SendSetup then
             SendPlay
           else
-            SendErrorMsg('TRTSPReceiver.Connect 211: SendSetup=false')
+            SendErrorMsg('TRTSPReceiver.Connect 231: SendSetup=false')
         else
-          SendErrorMsg('TRTSPReceiver.Connect 213: SendDescribe=false');
+          SendErrorMsg('TRTSPReceiver.Connect 233: SendDescribe=false');
       end;
     end;
   end
   else
-    SendErrorMsg('TRTSPReceiver.Connect 218: '+
+    SendErrorMsg('TRTSPReceiver.Connect 238: '+
         {$IFDEF UNIX}'socket error '+IntToStr(FSocket){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF});
 end;
 
@@ -484,24 +499,34 @@ end;
 procedure TRTSPReceiver.SendPlay;
 var
   w: string;
+  StrNum: string;
 begin
   if CurSession='' then
     SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 463: нет сессии')
   else
     try
+      StrNum:='498';
       w:=SendReceiveMethod('PLAY',AnsiString(Link.GetFullURI),'Session: '+CurSession);
       if pos('200 OK',w)>0 then
       begin
-        SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 469: 200 OK');
+        SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 502: 200 OK');
         TCPReader.SetAcceptedSocket(FSocket);
+        StrNum:='504';
         if assigned(LogicPing) then
-          LogicPing.Stop;
+        begin
+          try
+            LogicPing.Stop;
+          except on e: Exception do
+            SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 512, LogicPing.Stop: '+e.ClassName+' - '+e.Message);
+          end;
+        end;
+        StrNum:='513';
         LogicPing:=TLogicPing.Create(self,PingInterval);
       end
       else
-        SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 476:'#13#10+w);
+        SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 519:'#13#10+w);
     except on e: Exception do
-      SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 478: '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 522, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
     end;
 end;
 
@@ -539,7 +564,7 @@ begin
               Move(ABytes[0],AResultBytes[length(AResultBytes)-w],w);
             end
             else if w<0 then
-              SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 516: '{$IFNDEF FPC}+SysErrorMessage(GetLastError){$ENDIF});
+              SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 560: '{$IFNDEF FPC}+SysErrorMessage(GetLastError){$ENDIF});
           end;
           if length(AResultBytes)>0 then
           begin
@@ -557,11 +582,11 @@ begin
         if w=10054 then
           result:='-10054'
         else
-          SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 556: '+string(AText)+' - '+IntToStr({$IFDEF FPC}sr){$ELSE}w)+':'+SysErrorMessage(w){$ENDIF});
+          SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 578: '+string(AText)+' - '+IntToStr({$IFDEF FPC}sr){$ELSE}w)+':'+SysErrorMessage(w){$ENDIF});
       end;
     end;
   except on e: Exception do
-    SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 560: '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TRTSPReceiver.SendReceive ('+Link.Host+') 582: '+e.ClassName+' - '+e.Message);
   end;
 end;
 
@@ -664,7 +689,11 @@ end;
 
 function TRTSPReceiver.SendSetParameter: string;
 begin
-  result:=SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
+  try
+    result:=SendReceiveMethod('SET_PARAMETER',AnsiString(Link.GetFullURI),'');
+  except on e: Exception do
+    SendErrorMsg('TRTSPReceiver.SendSetParameter ('+Link.Host+') 693: '+e.ClassName+' - '+e.Message);
+  end;
 end;
 
 function TRTSPReceiver.SendSetup: boolean;
@@ -697,42 +726,67 @@ begin
         CurSession:=AnsiString(q);
         result:=CurSession<>'';
         if not result then
-          SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 665: нет сессии в параметре сессии'#13#10+sl.Text);
+          SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 727: нет сессии в параметре сессии'#13#10+sl.Text);
       end
       else
-        SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 668: нет сессии в ответе, TrackLink='+string(TrackLink)+#13#10+sl.Text);
+        SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 730: нет сессии в ответе, TrackLink='+string(TrackLink)+#13#10+sl.Text);
     finally
       FreeAndNil(sl);
     end;
   except on e: Exception do
-    SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 673: '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TRTSPReceiver.SendSetup ('+Link.Host+') 735: '+e.ClassName+' - '+e.Message);
   end;
 end;
 
 procedure TRTSPReceiver.SendTeardown;
+var
+  StrNum: string;
 begin
-  if assigned(LogicPing) then
-  begin
-    LogicPing.FParent:=nil;
-    LogicPing.Stop;
+  try
+    StrNum:='737';
+    if assigned(LogicPing) then
+    begin
+      StrNum:='740';
+      LogicPing.FParent:=nil;
+      LogicPing.Stop;
+      LogicPing:=nil;
+    end;
+    StrNum:='745';
+    SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
+    StrNum:='747';
+    TCPReader.Stop;
+  except on e: Exception do
+    SendErrorMsg('TRTSPReceiver.SendTeardown 750: '+e.ClassName+' - '+e.Message);
   end;
-  SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
-  TCPReader.Stop;
 end;
 
 procedure TRTSPReceiver.SetActive(const Value: boolean);
+var
+  StrNum: string;
 begin
   FLock.Enter;
   try
-    if Value then
-    begin
-      if FConnectionString='' then
-        SendErrorMsg('TRTSPReceiver::SetActive 693: no connection string')
-      else if not TCPReader.Active then
-        Connect;
-    end
-    else
-      SendTeardown;
+    try
+      StrNum:='761';
+      if Value then
+      begin
+        if FConnectionString='' then
+          SendErrorMsg('TRTSPReceiver::SetActive 765: no connection string')
+        else
+        begin
+          StrNum:='768';
+          if not TCPReader.Active then
+            Connect;
+        end;
+      end
+      else
+      begin
+        StrNum:='775';
+        SendTeardown;
+      end;
+    except on e: Exception do
+      SendErrorMsg('TRTSPReceiver.SetActive 779, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
+    end;
   finally
     FLock.Leave;
   end;
