@@ -88,6 +88,11 @@ begin
   try
     CFrame:=PDataFrame(AInputData);
     try
+      if CFrame^.Size=0 then
+      begin
+        SendDebugMsg('TVideoDecoder.DoExecute 93: CFrame^.Size=0');
+        exit;
+      end;
       if Terminated then
         exit;
       pkt^.size:=CFrame^.Size;
@@ -122,6 +127,9 @@ begin
             DecodedFrame^.Time:=CFrame^.Time;
             DecodedFrame^.Width:=VideoContext^.width;
             DecodedFrame^.Height:=VideoContext^.height;
+            DecodedFrame^.Left:=0;
+            DecodedFrame^.Top:=0;
+            DecodedFrame^.ImageType:=itBGR;
             DSize:=DecodedFrame^.Width*DecodedFrame^.Height*3;
             GetMem(DecodedFrame^.Data,DSize);
             Move(m_OutPicture^.data[0]^,DecodedFrame^.Data^,DSize);

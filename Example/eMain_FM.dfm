@@ -24,6 +24,10 @@ object MainFM: TMainFM
     TabOrder = 0
     object tsCore: TTabSheet
       Caption = 'Core'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object bCreate: TButton
         Left = 16
         Top = 8
@@ -56,6 +60,10 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object mIOLog: TMemo
         Left = 192
         Top = 18

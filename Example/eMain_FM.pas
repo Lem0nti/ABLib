@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   ABL.IA.ImageCutter, ABL.IA.IfMotion,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, ABL.VS.FFMPEG, //libavcodec,
-   ABL.VS.DecodedMultiplier,
+  ABL.VS.DecodedMultiplier,
   ABL.Core.QueueMultiplier, ABL.Core.ThreadController, Vcl.ComCtrls, ABL.Render.DirectRender, ABL.IA.ImageResize,
   Vcl.StdCtrls, eDirect_Cl, eMessage, eTimer_Cl, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
   Vcl.ExtCtrls, ABL.IO.TCPReader, eTCPToLog_Cl, Vcl.Buttons, ABL.VS.VideoDecoder, ABL.Core.ThreadQueue;
@@ -127,7 +127,7 @@ begin
   end;
   if not assigned(ImageCutter) then
   begin
-    ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter_Input'),nil);
+    ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter_Input'));
     DecodedMultiplier.AddReceiver(ImageCutter.InputQueue);
   end;
   if not assigned(IfMotionLeft) then
