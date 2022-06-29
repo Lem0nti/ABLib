@@ -27,6 +27,8 @@ type
     procedure SetWidth(const Value: integer);
     function GetCameraName: string;
     procedure SetCameraName(const Value: string);
+    function GetOnDraw: TDrawNotify;
+    procedure SetOnDraw(const Value: TDrawNotify);
   protected
     {$IFDEF FPC}
     procedure ClearData(AData: Pointer); override;
@@ -42,6 +44,7 @@ type
     property Drawer: TDrawer read FDrawer;
     property Handle: THandle read GetHandle write SetHandle;
     property Height: integer read GetHeight write SetHeight;
+    property OnDraw: TDrawNotify read GetOnDraw write SetOnDraw;
     property Width: integer read GetWidth write SetWidth;
   end;
 
@@ -131,6 +134,11 @@ begin
   end;
 end;
 
+function TDirectRender.GetOnDraw: TDrawNotify;
+begin
+  result:=FDrawer.OnDraw;
+end;
+
 function TDirectRender.GetWidth: integer;
 begin
   FLock.Enter;
@@ -169,6 +177,11 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+procedure TDirectRender.SetOnDraw(const Value: TDrawNotify);
+begin
+  FDrawer.OnDraw:=Value;
 end;
 
 procedure TDirectRender.SetSize(AWidth, AHeight: integer);

@@ -20,6 +20,7 @@ type
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
+    destructor Destroy; override;
     property Offset: ShortInt read GetOffset write SetOffset;
     property Radius: byte read GetRadius write SetRadius;
   end;
@@ -31,10 +32,16 @@ implementation
 constructor TLocalBinarization.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
 begin
   inherited Create(AInputQueue,AOutputQueue,AName);
-  FBuffer:=AllocMem(2048*2048*3);
+  GetMem(FBuffer,2048*2048*3);
   FRadius:=8;
   FOffset:=30;
   Start;
+end;
+
+destructor TLocalBinarization.Destroy;
+begin
+  FreeMem(FBuffer);
+  inherited;
 end;
 
 procedure TLocalBinarization.DoExecute(var AInputData, AResultData: Pointer);
@@ -63,11 +70,7 @@ begin
       Integral[x,0]:=Integral[x-1,0]+RGBArrayFrom[x].rgbtGreen;
     for y := 1 to DecodedFrame.Height-1 do
       for x := 1 to DecodedFrame.Width-1 do
-      begin
-        if Terminated then
-          exit;
         Integral[x,y]:=RGBArrayFrom[y*DecodedFrame.Width+x].rgbtGreen+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
-      end;
     //бинаризация
     FLock.Enter;
     tmpRadius:=FRadius;
@@ -108,6 +111,8 @@ begin
     DecValue:=DecValue/WholeSquare;
     for y := tmpRadius to DecodedFrame.Height-1 do
     begin
+      if Terminated then
+        exit;
       RGBArrayFrom:=Pointer(NativeUInt(DecodedFrame.Data)+y*DecodedFrame.Width*3);
       yFrom:=y-tmpRadius;
       yTo:=y+tmpRadius;
@@ -115,8 +120,6 @@ begin
         yTo:=DecodedFrame.Height-1;
       for x := 0 to DecodedFrame.Width-1 do
       begin
-        if Terminated then
-          exit;
         //среднее
         xFrom:=x-tmpRadius;
         if xFrom<0 then
@@ -142,11 +145,14 @@ begin
       end;
     end;
     DecodedFrame.ImageType:=itBit;
-    Move(FBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
-    AResultData:=AInputData;
-    AInputData:=nil;
-  end
-  else
+    if assigned(FOutputQueue) then
+    begin
+      Move(FBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
+      AResultData:=AInputData;
+      AInputData:=nil;
+    end;
+  end;
+  if assigned(AInputData) then
     FreeMem(DecodedFrame.Data);
 end;
 

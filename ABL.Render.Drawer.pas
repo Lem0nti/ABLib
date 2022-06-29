@@ -6,12 +6,15 @@ uses
   ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics, Windows, DateUtils;
 
 type
+  TDrawNotify = procedure (DC: HDC; Width, Height: integer) of object;
+
   TDrawer=class(TBaseObject)
   private
     FCameraName: string;
     FFocusRect: TRect;
     FHandle: THandle;
     Font: TFont;
+    FOnDraw: TDrawNotify;
     FShowTime: boolean;
     FVerticalMirror: boolean;
     LastPicture: PDecodedFrame;
@@ -24,6 +27,8 @@ type
     procedure SetFocusRect(const Value: TRect);
     function GetCameraName: string;
     procedure SetCameraName(const Value: string);
+    function GetOnDraw: TDrawNotify;
+    procedure SetOnDraw(const Value: TDrawNotify);
   public
     constructor Create(AHandle: THandle; AName: string = ''); reintroduce;
     destructor Destroy; override;
@@ -31,6 +36,7 @@ type
     procedure SetHandle(const Value: THandle);
     property CameraName: string read GetCameraName write SetCameraName;
     property FocusRect: TRect read GetFocusRect write SetFocusRect;
+    property OnDraw: TDrawNotify read GetOnDraw write SetOnDraw;
     property ShowTime: boolean read GetShowTime write SetShowTime;
     property VerticalMirror: boolean read GetVerticalMirror write SetVerticalMirror;
   end;
@@ -130,6 +136,8 @@ begin
             end;
             if FFocusRect.Left>0 then
               DrawFocusRect(drawDC,FFocusRect);
+            if assigned(FOnDraw) then
+              FOnDraw(drawDC,ppRect.Width,ppRect.Height);
           finally
             ReleaseDC(FHandle,drawDC);
           end;
@@ -158,6 +166,16 @@ begin
   FLock.Enter;
   try
     result:=FFocusRect;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+function TDrawer.GetOnDraw: TDrawNotify;
+begin
+  FLock.Enter;
+  try
+    result:=FOnDraw;
   finally
     FLock.Leave;
   end;
@@ -208,6 +226,16 @@ begin
   FLock.Enter;
   try
     FHandle:=Value;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TDrawer.SetOnDraw(const Value: TDrawNotify);
+begin
+  FLock.Enter;
+  try
+    FOnDraw:=Value;
   finally
     FLock.Leave;
   end;

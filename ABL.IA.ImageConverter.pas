@@ -57,8 +57,8 @@ begin
   result.ImageType:=itBit;
   GetMem(result.Data,tmpSize);
   FLock.Enter;
-  tmpUseGreen=FUseGreen;
-  tmpThreshold=FThreshold;
+  tmpUseGreen:=FUseGreen;
+  tmpThreshold:=FThreshold;
   FLock.Leave;
   BW:=result.Data;
   BW^:=0;
@@ -79,7 +79,7 @@ begin
   else
     for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
     begin
-      CurValue=RGBTriple.rgbtRed*0.299+RGBTriple.rgbtGreen*0.587+RGBTriple.rgbtBlue*0.114;
+      CurValue:=Round(RGBTriple.rgbtRed*0.299+RGBTriple.rgbtGreen*0.587+RGBTriple.rgbtBlue*0.114);
       CurrentBit:=i mod 8;
       if CurValue>tmpThreshold then
         BW^:=(BW^ or (1 shl CurrentBit));
@@ -112,9 +112,9 @@ begin
   result.ImageType:=itGray;
   GetMem(result.Data,tmpSize);
   FLock.Enter;
-  tmpUseGreen=FUseGreen;
+  tmpUseGreen:=FUseGreen;
   FLock.Leave;
-  BW=result.Data;
+  BW:=result.Data;
   if tmpUseGreen then
     for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
     begin
@@ -125,7 +125,7 @@ begin
   else
     for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
     begin
-      BW^:=RGBTriple.rgbtRed*0.299+RGBTriple.rgbtGreen*0.587+RGBTriple.rgbtBlue*0.114;
+      BW^:=Round(RGBTriple.rgbtRed*0.299+RGBTriple.rgbtGreen*0.587+RGBTriple.rgbtBlue*0.114);
       Inc(BW);
       Inc(RGBTriple);
     end;
@@ -140,7 +140,7 @@ var
   CurrentBit: SmallInt;
   BW: PByte;
 begin
-  tmpSize=ImageFrom.Width*ImageFrom.Height*3;
+  tmpSize:=ImageFrom.Width*ImageFrom.Height*3;
   new(result);
   result.Width:=ImageFrom.Width;
   result.Height:=ImageFrom.Height;
@@ -150,11 +150,11 @@ begin
   result.ImageType:=itBGR;
   GetMem(result.Data,tmpSize);
   BW:=ImageFrom.Data;
-  RGBTriple=PRGBTriple(result.Data);
+  RGBTriple:=PRGBTriple(result.Data);
   for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
   begin
     CurrentBit:=i mod 8;
-    if (BW and (1 shl CurrentBit))=(1 shl CurrentBit) then
+    if (BW^ and (1 shl CurrentBit)=(1 shl CurrentBit)) then
       CurValue:=255
     else
       CurValue:=0;
@@ -173,7 +173,7 @@ var
   CurrentBit: SmallInt;
   BW,BT: PByte;
 begin
-  tmpSize=ImageFrom.Width*ImageFrom.Height;
+  tmpSize:=ImageFrom.Width*ImageFrom.Height;
   new(result);
   result.Width:=ImageFrom.Width;
   result.Height:=ImageFrom.Height;
@@ -183,11 +183,11 @@ begin
   result.ImageType:=itGray;
   GetMem(result.Data,tmpSize);
   BW:=ImageFrom.Data;
-  BT=PByte(result.Data);
+  BT:=PByte(result.Data);
   for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
   begin
     CurrentBit:=i mod 8;
-    if (BW and (1 shl CurrentBit))=(1 shl CurrentBit) then
+    if (BW^ and (1 shl CurrentBit))=(1 shl CurrentBit) then
       CurValue:=255
     else
       CurValue:=0;
@@ -222,14 +222,14 @@ begin
           AResultData:=BGR2Gray(DecodedInput);
       itBit:
         if tmpResultType=itBGR then
-          AResultData=Bit2BGR(DecodedInput)
+          AResultData:=Bit2BGR(DecodedInput)
         else if tmpResultType=itGray then
-          AResultData=Bit2Gray(DecodedInput);
+          AResultData:=Bit2Gray(DecodedInput);
       itGray:
         if tmpResultType=itBit then
-          AResultData=Gray2Bit(DecodedInput)
+          AResultData:=Gray2Bit(DecodedInput)
         else if tmpResultType=itBGR then
-          AResultData=Gray2BGR(DecodedInput);
+          AResultData:=Gray2BGR(DecodedInput);
     end;
   finally
     FreeMem(DecodedInput.Data);
@@ -266,7 +266,7 @@ var
   CurrentBit: SmallInt;
   BW: PByte;
 begin
-  tmpSize=ImageFrom.Width*ImageFrom.Height*3;
+  tmpSize:=ImageFrom.Width*ImageFrom.Height*3;
   new(result);
   result.Width:=ImageFrom.Width;
   result.Height:=ImageFrom.Height;
@@ -276,7 +276,7 @@ begin
   result.ImageType:=itBGR;
   GetMem(result.Data,tmpSize);
   BW:=ImageFrom.Data;
-  RGBTriple=PRGBTriple(result.Data);
+  RGBTriple:=PRGBTriple(result.Data);
   for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
   begin
     FillChar(RGBTriple^,3,BW^);
@@ -305,7 +305,7 @@ begin
   result.ImageType:=itBit;
   GetMem(result.Data,tmpSize);
   FLock.Enter;
-  tmpThreshold=FThreshold;
+  tmpThreshold:=FThreshold;
   FLock.Leave;
   BT:=result.Data;
   BT^:=0;

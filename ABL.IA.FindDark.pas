@@ -33,7 +33,7 @@ begin
   inherited;
 end;
 
-procedure TFindDark.DoExecute(var AInputData, AResultData: Pointer);
+procedure TFindDark.DoExecute(var AInputData: Pointer; var AResultData: Pointer);
 const
   GreenDec  = 0.8;
 var
@@ -47,8 +47,8 @@ begin
   DecodedFrame:=PDecodedFrame(AInputData);
   if DecodedFrame.ImageType=itBGR then
   begin
-    tmpDataSize:=(DecodedFrame.Width*DecodedFrame.Height) div 8+1;
-    FillChar(tmpBuffer,tmpDataSize,255);
+    tmpDataSize:=((DecodedFrame.Width*DecodedFrame.Height) div 8)+1;
+    FillChar(tmpBuffer^,tmpDataSize,255);
     for y:=1 to DecodedFrame.Height-2 do
     begin
       RGBLine:=PRGBArray(NativeUInt(DecodedFrame.Data)+y*DecodedFrame.Width*3);
@@ -73,7 +73,16 @@ begin
         ResultPointer^:=(ResultPointer^ and not (1 shl CurrentBit));
       end;
     end;
+    DecodedFrame.ImageType:=itBit;
+    if assigned(FOutputQueue) then
+    begin
+      Move(tmpBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
+      AResultData:=AInputData;
+      AInputData:=nil;
+    end;
   end;
+  if assigned(AInputData) then
+    FreeMem(DecodedFrame.Data);
 end;
 
 end.
