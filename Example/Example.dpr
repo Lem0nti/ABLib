@@ -6,8 +6,7 @@ uses
   eDirect_Cl in 'eDirect_Cl.pas',
   eMessage in 'eMessage.pas',
   eTimer_Cl in 'eTimer_Cl.pas',
-  eTCPToLog_Cl in 'eTCPToLog_Cl.pas',
-  ABL.IA.FindDark in '..\ABL.IA.FindDark.pas';
+  eTCPToLog_Cl in 'eTCPToLog_Cl.pas';
 
 {$R *.res}
 

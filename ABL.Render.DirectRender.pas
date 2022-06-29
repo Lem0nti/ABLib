@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.DirectThread, ABL.Render.Drawer, ABL.VS.VSTypes, ABL.VS.DecodedItem, SysUtils,
-  {$IFDEF MSWINDOWS}ABL.Render.DCDrawer, {$ENDIF}SyncObjs,
+  SyncObjs,
   DateUtils, ABL.Core.Debug;
 
 type
@@ -53,10 +53,7 @@ constructor TDirectRender.Create(AName: string);
 begin
   inherited Create(nil,nil,AName);
   FInputQueue:=TDecodedItem.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
-  {$IFDEF UNIX}
-  {$ELSE}
-  FDrawer:=TDCDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
-  {$ENDIF}
+  FDrawer:=TDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
   FWidth:=1920;
   FHeight:=1080;
   SkipThru:=0;
@@ -226,11 +223,8 @@ end;
 
 procedure TDirectRender.UpdateSizes;
 begin
-  {$IFDEF UNIX}
-  {$ELSE}
   if assigned(FDrawer) then
-    TDCDrawer(FDrawer).SetHandle(FHandle,FWidth,FHeight);
-  {$ENDIF}
+    TDrawer(FDrawer).SetHandle(FHandle);
 end;
 
 end.
