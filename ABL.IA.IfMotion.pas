@@ -47,7 +47,6 @@ var
   DecodedFrame: PDecodedFrame;
   rcWidth,rcHeight: Real;
   tmpRows,tmpCols: word;
-  tmpSensivity: byte;
 
   procedure ApplyAsEthalon;
   var
@@ -70,7 +69,6 @@ begin
     FLock.Enter;
     tmpRows:=FRows;
     tmpCols:=FCols;
-    tmpSensivity:=FSensivity;
     FLock.Leave;
     if Length(Ethalon)=0 then
       ApplyAsEthalon

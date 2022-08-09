@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Core.BaseQueue, {$IFDEF UNIX}fgl{$ELSE}Generics.Collections{$ENDIF};
+  ABL.Core.DirectThread, ABL.Core.BaseQueue, {$IFDEF UNIX}fgl{$ELSE}Generics.Collections{$ENDIF}, SyncObjs;
 
 type
   TDataMultiply=procedure(AInputData: Pointer; var AResultData: Pointer) of object;
@@ -18,6 +18,7 @@ type
     constructor Create(AInputQueue: TBaseQueue; AName: string = ''); reintroduce;
     destructor Destroy; override;
     procedure AddReceiver(AQueue: TBaseQueue);
+    procedure RemoveReceiver(AQueue: TBaseQueue);
     property OnMultiply: TDataMultiply read FOnMultiply write FOnMultiply;
   end;
 
@@ -27,7 +28,12 @@ implementation
 
 procedure TQueueMultiplier.AddReceiver(AQueue: TBaseQueue);
 begin
-  FReceiverList.Add(AQueue);
+  FLock.Enter;
+  try
+    FReceiverList.Add(AQueue);
+  finally
+    FLock.Leave;
+  end;
 end;
 
 constructor TQueueMultiplier.Create(AInputQueue: TBaseQueue; AName: string);
@@ -60,6 +66,16 @@ begin
     end;
     FReceiverList[FReceiverList.Count-1].Push(AInputData);
     AInputData:=nil;
+  end;
+end;
+
+procedure TQueueMultiplier.RemoveReceiver(AQueue: TBaseQueue);
+begin
+  FLock.Enter;
+  try
+    FReceiverList.Remove(AQueue);
+  finally
+    FLock.Leave;
   end;
 end;
 

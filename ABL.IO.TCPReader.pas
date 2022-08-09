@@ -9,9 +9,13 @@ uses
 type
   TConnectionReader=class;
 
+  {$IFDEF FPC}
+  TConnectionList = specialize {$IFDEF UNIX}TFPGObjectList{$ELSE}TObjectList{$ENDIF}<TConnectionReader>;
+  {$ENDIF}
+
   TTCPReader=class(TNetworkReader)
   private
-    ThreadPool: TList<TConnectionReader>;
+    ThreadPool: {$IFDEF FPC}TConnectionList{$ELSE}TObjectList<TConnectionReader>{$ENDIF};
   protected
     procedure Execute; override;
   public
@@ -41,7 +45,8 @@ implementation
 constructor TTCPReader.Create(AOutputQueue: TBaseQueue; AName: string; ASocket: TSocket);
 begin
   inherited Create(AOutputQueue,AName,ASocket);
-  ThreadPool:=TList<TConnectionReader>.Create;
+  ThreadPool:={$IFDEF FPC}TConnectionList{$ELSE}TObjectList<TConnectionReader>{$ENDIF}.Create;
+  ThreadPool.{$IFDEF UNIX}FreeObjects{$ELSE}OwnsObjects{$ENDIF}:=false;
 end;
 
 destructor TTCPReader.Destroy;
@@ -154,9 +159,11 @@ var
   NTime: int64;
   ReadedData: PDataFrame;
   tmpLTimeStamp: TTimeStamp;
+  StrNum: string;
 begin
   FreeOnTerminate:=true;
   try
+    StrNum:='166';
     try
       SetLength(ABytes,1024);
       SetLength(AResultBytes,0);
@@ -166,6 +173,7 @@ begin
         w:=1024;
         while w=1024 do
         begin
+          StrNum:='176';
           if Terminated then
             break;
           {$IFDEF UNIX}
@@ -182,20 +190,22 @@ begin
             break;
           if w=INVALID_SOCKET then
           begin
+            StrNum:='193';
             if (not Terminated) and assigned(FReader)  then
             begin
               {$IFDEF UNIX}
-              SendErrorMsg('TConnectionReader.Execute 188: INVALID_SOCKET '+IntToStr(w));
+              SendErrorMsg('TConnectionReader.Execute 197: INVALID_SOCKET '+IntToStr(w));
               {$ELSE}
               w:=WSAGetLastError;
               if w<>10053 then  //graceful
-                SendErrorMsg('TConnectionReader.Execute 192: INVALID_SOCKET '+IntToStr(w)+' - '+SysErrorMessage(w));
+                SendErrorMsg('TConnectionReader.Execute 201: INVALID_SOCKET '+IntToStr(w)+' - '+SysErrorMessage(w));
               {$ENDIF}
             end;
             break;
           end
           else if w>0 then
           begin
+            StrNum:='208';
             SetLength(AResultBytes,length(AResultBytes)+w);
             Move(ABytes[0],AResultBytes[length(AResultBytes)-w],w);
             if (FMaxBuffer>0) and (length(AResultBytes)>=FMaxBuffer) then
@@ -220,15 +230,16 @@ begin
         end
         else
         begin
+          StrNum:='233';
           if not Terminated then
-            SendErrorMsg('TConnectionReader.Execute 224: соединение закрыто '+IntToStr(ThreadID));
+            SendErrorMsg('TConnectionReader.Execute 235: соединение закрыто '+IntToStr(ThreadID));
           break;
         end;
       end;
       if assigned(FReader) then
         FReader.ThreadPool.Remove(Self);
     except on e: Exception do
-      SendErrorMsg('TConnectionReader.Execute 231: ('+IntToStr(ThreadID)+') '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TConnectionReader.Execute 242, StrNum='+StrNum+': ('+IntToStr(ThreadID)+') '+e.ClassName+' - '+e.Message);
     end;
   finally
     Terminate;

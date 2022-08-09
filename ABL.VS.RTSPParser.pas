@@ -35,7 +35,8 @@ type
   private
     CurFrame: TBytes;
     InputBuffer: TBytes;
-    OldPacketType, BadFrameCount: byte;
+    OldPacketType: byte;
+    BadFrameCount: Word;
     NTime,FLastFrameTime: int64;
     function GetLastFrameTime: int64;
   protected
@@ -197,7 +198,7 @@ begin
                           end
                           else
                           begin
-                            SendErrorMsg('TRTSPParser.DoExecute 200: нет SPS и PPS кадров');
+                            SendErrorMsg('TRTSPParser('+FName+').DoExecute 200: нет SPS и PPS кадров');
                             SubThread.Terminate;
                             Dispose(ResultData);
                             exit;
@@ -233,10 +234,16 @@ begin
                     //возможно это временно, просто очистить текущий буффер кадра
                     SetLength(CurFrame,0);
                     inc(BadFrameCount);
-                    if BadFrameCount>=224 then
+                    if BadFrameCount mod 256 = 0 then
                     begin
-                      SendErrorMsg('TRTSPParser.DoExecute 238: неподдерживаемый формат, FrameType='+IntToStr(FrameType));
-                      BadFrameCount:=0;
+                      SendErrorMsg('TRTSPParser('+FName+').DoExecute 238: неподдерживаемый формат, FrameType='+IntToStr(FrameType)+', PacketType='+IntToStr(PacketType));
+                      if BadFrameCount>=32768 then
+                      begin
+                        Stop;
+                        if assigned(Parent) then
+                          Parent.ChildCB(self);
+                        exit;
+                      end;
                     end;
                   end;
                 end;
@@ -257,7 +264,7 @@ begin
                 AStringForLog:='';
               if AStringForLog<>'' then
                 AStringForLog:=' ('+AStringForLog+')';
-              SendErrorMsg('TRTSPParser.DoExecute 260: неподдерживаемый формат, PayloadType='+IntToStr(PayloadType)+AStringForLog);
+              SendErrorMsg('TRTSPParser('+FName+').DoExecute 260: неподдерживаемый формат, PayloadType='+IntToStr(PayloadType)+AStringForLog);
               SubThread.Terminate;
               BadFrameCount:=0;
               //всё что в буффере - в лог

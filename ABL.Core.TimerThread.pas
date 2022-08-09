@@ -72,6 +72,7 @@ end;
 destructor TTimerThread.Destroy;
 begin
   StopReceive;
+  Stop;
   FWaitForStop.SetEvent;
   FWaitForStop.Free;
   inherited;
@@ -104,7 +105,8 @@ begin
           exit;
       end;
     except on e: Exception do
-      SendErrorMsg('TTimerThread.Execute '+ClassName+'('+FName+') 107: '+e.ClassName+' - '+e.Message);
+      if not FTerminated then
+        SendErrorMsg('TTimerThread.Execute '+ClassName+'('+FName+') 109: '+e.ClassName+' - '+e.Message);
     end;
   finally
     SubThread:=nil;

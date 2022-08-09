@@ -4,9 +4,9 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  ABL.IA.ImageCutter, ABL.IA.IfMotion,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, ABL.VS.FFMPEG, //libavcodec,
-   ABL.VS.DecodedMultiplier,
+  ABL.IA.ImageCutter, ABL.IA.IfMotion, ABL.IA.LocalBinarization, ABL.IA.FindDark,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, ABL.VS.FFMPEG,
+  ABL.VS.DecodedMultiplier, ABL.IA.ImageConverter, ABL.VS.DecodedItem, ABL.Core.BaseThread,
   ABL.Core.QueueMultiplier, ABL.Core.ThreadController, Vcl.ComCtrls, ABL.Render.DirectRender, ABL.IA.ImageResize,
   Vcl.StdCtrls, eDirect_Cl, eMessage, eTimer_Cl, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
   Vcl.ExtCtrls, ABL.IO.TCPReader, eTCPToLog_Cl, Vcl.Buttons, ABL.VS.VideoDecoder, ABL.Core.ThreadQueue;
@@ -31,6 +31,8 @@ type
     pnlRightTop: TPanel;
     pnlLeftBottom: TPanel;
     pnlRightBottom: TPanel;
+    pnlRight: TPanel;
+    pnlBottom: TPanel;
     procedure bCreateClick(Sender: TObject);
     procedure bSendClick(Sender: TObject);
     procedure bSendTCPClick(Sender: TObject);
@@ -38,6 +40,7 @@ type
     procedure bGoClick(Sender: TObject);
     procedure pnlVideoResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure pnlRightTopDblClick(Sender: TObject);
   private
     { Private declarations }
     Direct1,Direct2: TDirect;
@@ -47,11 +50,14 @@ type
     TCPToLog: TTCPToLog;
     RTSPReceiver: TRTSPReceiver;
     VideoDecoder: TVideoDecoder;
-    Render,ResizeRender,LeftIfRender,RightIfRender: TDirectRender;
+    Render,ResizeRender,LeftIfRender,RightIfRender,LocalRender,FindDarkRender: TDirectRender;
     DecodedMultiplier: TDecodedMultiplier;
     ImageResize: TImageResize;
     ImageCutter: TImageCutter;
     IfMotionLeft, IfMotionRight: TIfMotion;
+    LocalBinarization: TLocalBinarization;
+    FindDark: TFindDark;
+    icLocalBinarization,icFindDark: TImageConverter;
     procedure ABLThreadExecute(var Message: TMessage); message WM_ABL_THREAD_EXECUTED;
     procedure Multiply(AInputData: Pointer; var AResultData: Pointer);
   public
@@ -127,7 +133,7 @@ begin
   end;
   if not assigned(ImageCutter) then
   begin
-    ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter_Input'),nil);
+    ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter_Input'));
     DecodedMultiplier.AddReceiver(ImageCutter.InputQueue);
   end;
   if not assigned(IfMotionLeft) then
@@ -150,8 +156,34 @@ begin
   if not assigned(RightIfRender) then
   begin
     RightIfRender:=TDirectRender.Create('RightIfRender');
-    RightIfRender.Handle:=pnlRightBottom.Handle;
+    RightIfRender.Handle:=pnlBottom.Handle;
     IfMotionRight.SetOutputQueue(RightIfRender.InputQueue);
+  end;
+  if not assigned(LocalBinarization) then
+  begin
+    LocalBinarization:=TLocalBinarization.Create(TDecodedItem.Create('LocalBinarization_Input'),ThreadController.QueueByName('LocalBinarization_Output'),'LocalBinarization');
+    DecodedMultiplier.AddReceiver(LocalBinarization.InputQueue);
+  end;
+  if not assigned(icLocalBinarization) then
+    icLocalBinarization:=TImageConverter.Create(ThreadController.QueueByName('LocalBinarization_Output'),nil,'icLocalBinarization');
+  if not assigned(LocalRender) then
+  begin
+    LocalRender:=TDirectRender.Create('LocalRender');
+    LocalRender.Handle:=pnlRight.Handle;
+    icLocalBinarization.SetOutputQueue(LocalRender.InputQueue);
+  end;
+  if not assigned(FindDark) then
+  begin
+    FindDark:=TFindDark.Create(TDecodedItem.Create('FindDark_Input'),TDecodedItem.Create('FindDark_Output'),'FindDark');
+    DecodedMultiplier.AddReceiver(FindDark.InputQueue);
+  end;
+  if not assigned(icFindDark) then
+    icFindDark:=TImageConverter.Create(FindDark.OutputQueue,nil,'icFindDark');
+  if not assigned(FindDarkRender) then
+  begin
+    FindDarkRender:=TDirectRender.Create('FindDarkRender');
+    FindDarkRender.Handle:=pnlRightBottom.Handle;
+    icFindDark.SetOutputQueue(FindDarkRender.InputQueue);
   end;
 end;
 
@@ -196,7 +228,23 @@ begin
   if assigned(VideoDecoder) then
     VideoDecoder.Free;
   if assigned(DecodedMultiplier) then
+  begin
+    DecodedMultiplier.Stop;
+    Sleep(100);
     DecodedMultiplier.Free;
+  end;
+  if assigned(LocalBinarization) then
+  begin
+    LocalBinarization.Stop;
+    Sleep(100);
+    LocalBinarization.Free;
+  end;
+  if assigned(FindDark) then
+  begin
+    FindDark.Stop;
+    Sleep(100);
+    FindDark.Free;
+  end;
 end;
 
 procedure TMainFM.leRTSPLinkKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -214,20 +262,41 @@ begin
   AResultData:=tmpString;
 end;
 
-procedure TMainFM.pnlVideoResize(Sender: TObject);
+procedure TMainFM.pnlRightTopDblClick(Sender: TObject);
+var
+  MainRender,SubRender: TDirectRender;
+  Thread: TBaseThread;
 begin
-  pnlLeftTop.Width:=pnlVideo.Width div 2;
-  pnlLeftTop.Height:=pnlVideo.Height div 2;
-  pnlRightTop.Width:=pnlLeftTop.Width;
-  pnlRightTop.Left:=pnlLeftTop.Width;
-  pnlRightTop.Height:=pnlLeftTop.Height;
-  pnlLeftBottom.Top:=pnlLeftTop.Height;
-  pnlLeftBottom.Height:=pnlLeftTop.Height;
-  pnlLeftBottom.Width:=pnlLeftTop.Width;
-  pnlRightBottom.Top:=pnlLeftTop.Height;
-  pnlRightBottom.Left:=pnlLeftTop.Width;
-  pnlRightBottom.Height:=pnlLeftTop.Height;
-  pnlRightBottom.Width:=pnlLeftTop.Width;
+  MainRender:=nil;
+  SubRender:=nil;
+  for Thread in ThreadList do
+    if Thread.ClassNameIs('TDirectRender') then
+    begin
+      if TDirectRender(Thread).Handle=pnlLeftTop.Handle then
+        MainRender:=TDirectRender(Thread)
+      else if TDirectRender(Thread).Handle=TPanel(Sender).Handle then
+        SubRender:=TDirectRender(Thread);
+      if assigned(MainRender) and assigned(SubRender) then
+      begin
+        MainRender.Handle:=TPanel(Sender).Handle;
+        SubRender.Handle:=pnlLeftTop.Handle;
+        exit;
+      end;
+    end;
+end;
+
+procedure TMainFM.pnlVideoResize(Sender: TObject);
+var
+  SingleWidth, SingleHeight: integer;
+begin
+  SingleWidth:=pnlVideo.Width div 3;
+  SingleHeight:=pnlVideo.Height div 3;
+  SetWindowPos(pnlLeftTop.Handle,0,0,0,SingleWidth*2,SingleHeight*2,SWP_NOSENDCHANGING);
+  SetWindowPos(pnlRightTop.Handle,0,SingleWidth*2,0,SingleWidth,SingleHeight,SWP_NOSENDCHANGING);
+  SetWindowPos(pnlRight.Handle,0,SingleWidth*2,SingleHeight,SingleWidth,SingleHeight,SWP_NOSENDCHANGING);
+  SetWindowPos(pnlLeftBottom.Handle,0,0,SingleHeight*2,SingleWidth,SingleHeight,SWP_NOSENDCHANGING);
+  SetWindowPos(pnlBottom.Handle,0,SingleWidth,SingleHeight*2,SingleWidth,SingleHeight,SWP_NOSENDCHANGING);
+  SetWindowPos(pnlRightBottom.Handle,0,SingleWidth*2,SingleHeight*2,SingleWidth,SingleHeight,SWP_NOSENDCHANGING);
 end;
 
 end.

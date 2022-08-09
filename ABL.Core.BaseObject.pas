@@ -31,6 +31,7 @@ type
     /// </param>
     constructor Create(AName: string = ''); virtual;
     destructor Destroy; override;
+    procedure ChildCB(AChild: TBaseObject); virtual;
     procedure Lock;
     procedure Unlock;
     property ID: Cardinal read GetID;
@@ -44,6 +45,11 @@ var
   GlobID: Cardinal = 0;
 
 { TRCLBaseObject }
+
+procedure TBaseObject.ChildCB(AChild: TBaseObject);
+begin
+
+end;
 
 constructor TBaseObject.Create(AName: string);
 begin
