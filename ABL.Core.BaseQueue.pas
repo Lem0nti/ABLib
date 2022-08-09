@@ -6,7 +6,7 @@ uses
   Contnrs, SyncObjs, ABL.Core.BaseObject, {$IFDEF UNIX}fgl{$ELSE}Generics.Collections{$ENDIF};
 
 type
-  TABLQueue=class(TQueue)
+  TABLQueue=class(Contnrs.TQueue)
   public
     property List;
   end;

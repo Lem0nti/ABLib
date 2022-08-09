@@ -129,7 +129,7 @@ procedure TNetworkReader.Stop;
 begin
   SubThread:=nil;
   closesocket(FSocket);
-  inherited;
+  inherited Stop;
 end;
 
 end.

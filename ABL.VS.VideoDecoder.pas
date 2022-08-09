@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.DirectThread, ABL.VS.FFMPEG,
-  ABL.Core.BaseQueue, ABL.IO.IOTypes,
+  ABL.Core.BaseQueue, ABL.IO.IOTypes, SyncObjs,
   ABL.VS.VSTypes, ABL.Core.Debug, SysUtils;
 
 type
@@ -44,7 +44,9 @@ begin
   if assigned(m_OutPicture) then
     av_frame_free(@m_OutPicture);
   m_OutPicture := nil;
+  FLock.Enter;
   av_frame_free(@frame);
+  FLock.Leave;
   avcodec_close(VideoContext);
   avcodec_free_context(@VideoContext);
   av_packet_free(@pkt);
@@ -57,7 +59,7 @@ begin
   PrevWidth:=0;
   FCodec:=ACodec;
   InitDecoder;
-  Active:=true;
+  Start;
 end;
 
 {$IFDEF FPC}
@@ -83,65 +85,78 @@ var
   CFrame: PDataFrame;
   got_picture,DSize: integer;
   DecodedFrame: PDecodedFrame;
-  StrNum: string;
 begin
   try
     CFrame:=PDataFrame(AInputData);
     try
+      if CFrame^.Size=0 then
+      begin
+        SendDebugMsg('TVideoDecoder.DoExecute 93: CFrame^.Size=0');
+        exit;
+      end;
       if Terminated then
         exit;
       pkt^.size:=CFrame^.Size;
       pkt^.data:=CFrame^.Data;
-      StrNum:='98';
-      avcodec_decode_video2(VideoContext, frame, @got_picture, pkt);
-      if got_picture=1 then
-      begin
-        if CFrame.Reserved=0 then
+      FLock.Enter;
+      try
+        if assigned(frame) then
         begin
-          if (VideoContext^.width <> PrevWidth) and assigned(m_OutPicture) then
+          avcodec_decode_video2(VideoContext, frame, @got_picture, pkt);
+          if got_picture=1 then
           begin
-            av_frame_free(@m_OutPicture);
-            m_OutPicture := nil;
-          end;
-          PrevWidth:=VideoContext^.width;
-          if not assigned(m_OutPicture) then
+            if CFrame.Reserved=0 then
+            begin
+              if (VideoContext^.width <> PrevWidth) and assigned(m_OutPicture) then
+              begin
+                av_frame_free(@m_OutPicture);
+                m_OutPicture := nil;
+              end;
+              PrevWidth:=VideoContext^.width;
+              if not assigned(m_OutPicture) then
+              begin
+                m_OutPicture := av_frame_alloc;
+                avpicture_alloc(PAVPicture(m_OutPicture), AV_PIX_FMT_BGR24, VideoContext^.width, VideoContext^.height );
+                sws_ctx:=sws_getContext(VideoContext^.width,VideoContext^.height,VideoContext^.pix_fmt,VideoContext^.width,VideoContext^.height,
+                    AV_PIX_FMT_BGR24,SWS_BICUBIC,nil,nil,nil);
+              end;
+              sws_scale(sws_ctx, @frame^.data, @frame^.linesize, 0, VideoContext^.height, @m_OutPicture^.data, @m_OutPicture^.linesize);
+              if Terminated then
+                exit;
+              if assigned(FOutputQueue) then
+              begin
+                LastFrameTime:=CFrame^.Time;
+                new(DecodedFrame);
+                DecodedFrame^.Time:=CFrame^.Time;
+                DecodedFrame^.Width:=VideoContext^.width;
+                DecodedFrame^.Height:=VideoContext^.height;
+                DecodedFrame^.Left:=0;
+                DecodedFrame^.Top:=0;
+                DecodedFrame^.ImageType:=itBGR;
+                DSize:=DecodedFrame^.Width*DecodedFrame^.Height*3;
+                GetMem(DecodedFrame^.Data,DSize);
+                Move(m_OutPicture^.data[0]^,DecodedFrame^.Data^,DSize);
+                if Terminated then
+                  exit;
+                FOutputQueue.Push(DecodedFrame);
+              end;
+            end;
+          end
+          else
           begin
-            m_OutPicture := av_frame_alloc;
-            StrNum:='113';
-            avpicture_alloc(PAVPicture(m_OutPicture), AV_PIX_FMT_BGR24, VideoContext^.width, VideoContext^.height );
-            sws_ctx:=sws_getContext(VideoContext^.width,VideoContext^.height,VideoContext^.pix_fmt,VideoContext^.width,VideoContext^.height,
-                AV_PIX_FMT_BGR24,SWS_BICUBIC,nil,nil,nil);
-          end;
-          sws_scale(sws_ctx, @frame^.data, @frame^.linesize, 0, VideoContext^.height, @m_OutPicture^.data, @m_OutPicture^.linesize);
-          if Terminated then
-            exit;
-          if assigned(FOutputQueue) then
-          begin
-            LastFrameTime:=CFrame^.Time;
-            new(DecodedFrame);
-            DecodedFrame^.Time:=CFrame^.Time;
-            DecodedFrame^.Width:=VideoContext^.width;
-            DecodedFrame^.Height:=VideoContext^.height;
-            DSize:=DecodedFrame^.Width*DecodedFrame^.Height*3;
-            GetMem(DecodedFrame^.Data,DSize);
-            Move(m_OutPicture^.data[0]^,DecodedFrame^.Data^,DSize);
-            if Terminated then
-              exit;
-            FOutputQueue.Push(DecodedFrame);
+            inc(BadDecodeCounter);
+            if BadDecodeCounter>=192 then
+            begin
+              SendErrorMsg('TVideoDecoder('+FName+').DoExecute 134, ошибочное декодирование: InSize='+IntToStr(CFrame^.Size)+':'+IntToStr(VideoContext^.
+                  Width)+'x'+IntToStr(VideoContext^.Height));
+              CloseDecoder;
+              InitDecoder;
+              BadDecodeCounter:=0
+            end;
           end;
         end;
-      end
-      else
-      begin
-        inc(BadDecodeCounter);
-        if BadDecodeCounter>=192 then
-        begin
-          SendErrorMsg('TVideoDecoder('+FName+').DoExecute 134, ошибочное декодирование: InSize='+IntToStr(CFrame^.Size)+':'+IntToStr(VideoContext^.
-              Width)+'x'+IntToStr(VideoContext^.Height));
-          CloseDecoder;
-          InitDecoder;
-          BadDecodeCounter:=0
-        end;
+      finally
+        FLock.Leave;
       end;
     finally
       if CFrame^.Size>0 then
@@ -149,7 +164,7 @@ begin
     end;
   except on e: Exception do
     if not FTerminated then
-      SendErrorMsg('TVideoDecoder.DoExecute 152, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TVideoDecoder.DoExecute 152: '+e.ClassName+' - '+e.Message);
   end;
 end;
 

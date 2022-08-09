@@ -35,7 +35,8 @@ type
   private
     CurFrame: TBytes;
     InputBuffer: TBytes;
-    OldPacketType, BadFrameCount: byte;
+    OldPacketType: byte;
+    BadFrameCount: Word;
     NTime,FLastFrameTime: int64;
     function GetLastFrameTime: int64;
   protected
@@ -233,10 +234,16 @@ begin
                     //возможно это временно, просто очистить текущий буффер кадра
                     SetLength(CurFrame,0);
                     inc(BadFrameCount);
-                    if BadFrameCount>=224 then
+                    if BadFrameCount mod 256 = 0 then
                     begin
                       SendErrorMsg('TRTSPParser('+FName+').DoExecute 238: неподдерживаемый формат, FrameType='+IntToStr(FrameType)+', PacketType='+IntToStr(PacketType));
-                      BadFrameCount:=0;
+                      if BadFrameCount>=32768 then
+                      begin
+                        Stop;
+                        if assigned(Parent) then
+                          Parent.ChildCB(self);
+                        exit;
+                      end;
                     end;
                   end;
                 end;

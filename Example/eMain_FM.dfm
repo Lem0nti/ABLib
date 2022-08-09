@@ -2,8 +2,8 @@ object MainFM: TMainFM
   Left = 0
   Top = 0
   Caption = #1044#1077#1084#1086' ABLib'
-  ClientHeight = 408
-  ClientWidth = 635
+  ClientHeight = 436
+  ClientWidth = 715
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,13 +17,17 @@ object MainFM: TMainFM
   object PageControl: TPageControl
     Left = 0
     Top = 0
-    Width = 635
-    Height = 408
+    Width = 715
+    Height = 436
     ActivePage = tsVS_Render
     Align = alClient
     TabOrder = 0
+    ExplicitWidth = 635
+    ExplicitHeight = 408
     object tsCore: TTabSheet
       Caption = 'Core'
+      ExplicitWidth = 627
+      ExplicitHeight = 380
       object bCreate: TButton
         Left = 16
         Top = 8
@@ -36,12 +40,14 @@ object MainFM: TMainFM
       object mCoreLog: TMemo
         Left = 184
         Top = 10
-        Width = 432
-        Height = 356
+        Width = 512
+        Height = 384
         Align = alCustom
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 1
+        ExplicitWidth = 432
+        ExplicitHeight = 356
       end
       object bSend: TButton
         Left = 16
@@ -56,15 +62,19 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
+      ExplicitWidth = 627
+      ExplicitHeight = 380
       object mIOLog: TMemo
         Left = 192
         Top = 18
-        Width = 432
-        Height = 356
+        Width = 512
+        Height = 384
         Align = alCustom
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 0
+        ExplicitWidth = 432
+        ExplicitHeight = 356
       end
       object leText: TLabeledEdit
         Left = 11
@@ -89,16 +99,21 @@ object MainFM: TMainFM
     object tsVS_Render: TTabSheet
       Caption = 'VS + Render + IA'
       ImageIndex = 2
+      ExplicitWidth = 627
+      ExplicitHeight = 380
       object pnlVideo: TPanel
         Left = 16
         Top = 56
-        Width = 593
-        Height = 310
+        Width = 673
+        Height = 338
         Align = alCustom
         Anchors = [akLeft, akTop, akRight, akBottom]
+        BevelOuter = bvNone
         Caption = 'pnlVideo'
         TabOrder = 0
         OnResize = pnlVideoResize
+        ExplicitWidth = 593
+        ExplicitHeight = 310
         object pnlLeftTop: TPanel
           Left = 0
           Top = 0
@@ -108,12 +123,13 @@ object MainFM: TMainFM
           TabOrder = 0
         end
         object pnlRightTop: TPanel
-          Left = 328
+          Left = 456
           Top = 0
           Width = 185
           Height = 41
           Caption = 'pnlRightTop'
           TabOrder = 1
+          OnDblClick = pnlRightTopDblClick
         end
         object pnlLeftBottom: TPanel
           Left = 0
@@ -122,14 +138,34 @@ object MainFM: TMainFM
           Height = 41
           Caption = 'pnlLeftBottom'
           TabOrder = 2
+          OnDblClick = pnlRightTopDblClick
         end
         object pnlRightBottom: TPanel
-          Left = 368
-          Top = 208
+          Left = 480
+          Top = 248
           Width = 185
           Height = 41
           Caption = 'pnlRightBottom'
           TabOrder = 3
+          OnDblClick = pnlRightTopDblClick
+        end
+        object pnlRight: TPanel
+          Left = 456
+          Top = 128
+          Width = 185
+          Height = 41
+          Caption = 'pnlRight'
+          TabOrder = 4
+          OnDblClick = pnlRightTopDblClick
+        end
+        object pnlBottom: TPanel
+          Left = 255
+          Top = 248
+          Width = 185
+          Height = 41
+          Caption = 'pnlBottom'
+          TabOrder = 5
+          OnDblClick = pnlRightTopDblClick
         end
       end
       object leRTSPLink: TLabeledEdit

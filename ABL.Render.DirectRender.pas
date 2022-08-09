@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.DirectThread, ABL.Render.Drawer, ABL.VS.VSTypes, ABL.VS.DecodedItem, SysUtils,
-  {$IFDEF MSWINDOWS}ABL.Render.DCDrawer, {$ENDIF}SyncObjs,
+  SyncObjs,
   DateUtils, ABL.Core.Debug;
 
 type
@@ -27,6 +27,8 @@ type
     procedure SetWidth(const Value: integer);
     function GetCameraName: string;
     procedure SetCameraName(const Value: string);
+    function GetOnDraw: TDrawNotify;
+    procedure SetOnDraw(const Value: TDrawNotify);
   protected
     {$IFDEF FPC}
     procedure ClearData(AData: Pointer); override;
@@ -42,6 +44,7 @@ type
     property Drawer: TDrawer read FDrawer;
     property Handle: THandle read GetHandle write SetHandle;
     property Height: integer read GetHeight write SetHeight;
+    property OnDraw: TDrawNotify read GetOnDraw write SetOnDraw;
     property Width: integer read GetWidth write SetWidth;
   end;
 
@@ -53,10 +56,7 @@ constructor TDirectRender.Create(AName: string);
 begin
   inherited Create(nil,nil,AName);
   FInputQueue:=TDecodedItem.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
-  {$IFDEF UNIX}
-  {$ELSE}
-  FDrawer:=TDCDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
-  {$ENDIF}
+  FDrawer:=TDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
   FWidth:=1920;
   FHeight:=1080;
   SkipThru:=0;
@@ -83,6 +83,7 @@ var
   DrawResult: integer;
   tmpStr: string;
 begin
+  DrawResult:=-2;
   rData:=PDecodedFrame(AInputData);
   try
     if (SkipThru<now) and assigned(FDrawer) then
@@ -101,7 +102,6 @@ begin
         FreeMem(rData^.Data);
     except on e: Exception do
       begin
-
         tmpStr:='rData.Width='+IntToStr(rData.Width)+', DrawResult='+IntToStr(DrawResult);
         SendErrorMsg('TDirectRender('+FName+').DoExecute 103, '+tmpStr+': '+e.ClassName+' - '+e.Message);
       end;
@@ -132,6 +132,11 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+function TDirectRender.GetOnDraw: TDrawNotify;
+begin
+  result:=FDrawer.OnDraw;
 end;
 
 function TDirectRender.GetWidth: integer;
@@ -172,6 +177,11 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+procedure TDirectRender.SetOnDraw(const Value: TDrawNotify);
+begin
+  FDrawer.OnDraw:=Value;
 end;
 
 procedure TDirectRender.SetSize(AWidth, AHeight: integer);
@@ -226,11 +236,8 @@ end;
 
 procedure TDirectRender.UpdateSizes;
 begin
-  {$IFDEF UNIX}
-  {$ELSE}
   if assigned(FDrawer) then
-    TDCDrawer(FDrawer).SetHandle(FHandle,FWidth,FHeight);
-  {$ENDIF}
+    TDrawer(FDrawer).SetHandle(FHandle);
 end;
 
 end.

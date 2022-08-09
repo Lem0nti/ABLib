@@ -64,6 +64,7 @@ type
     Link: TURI;
     constructor Create(AOutputQueue: TThreadQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
     destructor Destroy; override;
+    procedure ChildCB(AChild: TBaseObject); override;
     function LastError: string;
     function LastFrameTime: int64;
     function ReadSize: Cardinal;
@@ -173,6 +174,11 @@ begin
 end;
 
 { TRTSPReceiver }
+
+procedure TRTSPReceiver.ChildCB(AChild: TBaseObject);
+begin
+  SendTeardown;
+end;
 
 procedure TRTSPReceiver.Connect;
 var

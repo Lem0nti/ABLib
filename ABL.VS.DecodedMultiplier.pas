@@ -24,6 +24,8 @@ begin
   begin
     for i := 0 to FReceiverList.Count-2 do
     begin
+      if Terminated then
+        exit;
       new(DecodedFrame);
       DecodedFrame.Time:=PDecodedFrame(AInputData).Time;
       DecodedFrame.Width:=PDecodedFrame(AInputData).Width;
