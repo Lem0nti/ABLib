@@ -146,7 +146,10 @@ begin
         FLock.Leave;
       end;
     except on e: Exception do
-      SendErrorMsg('TDrawer('+FName+').Draw 141: '+e.ClassName+' - '+e.Message);
+      begin
+        result:=-1;
+        SendErrorMsg('TDrawer('+FName+').Draw 141: '+e.ClassName+' - '+e.Message);
+      end;
     end;
   end;
 end;

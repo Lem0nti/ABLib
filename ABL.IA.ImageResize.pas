@@ -111,7 +111,8 @@ procedure TImageResize.SetHeight(const Value: word);
 begin
   FLock.Enter;
   try
-    FHeight:=Value;
+    if Value>0 then
+      FHeight:=Value;
   finally
     FLock.Leave;
   end;
@@ -121,8 +122,10 @@ procedure TImageResize.SetSize(AWidth, AHeight: word);
 begin
   FLock.Enter;
   try
-    FHeight:=AHeight;
-    FWidth:=AWidth;
+    if AHeight>0 then
+      FHeight:=AHeight;
+    if AWidth>0 then
+      FWidth:=AWidth;
   finally
     FLock.Leave;
   end;
@@ -132,7 +135,8 @@ procedure TImageResize.SetWidth(const Value: word);
 begin
   FLock.Enter;
   try
-    FWidth:=Value;
+    if Value>0 then
+      FWidth:=Value;
   finally
     FLock.Leave;
   end;

@@ -37,7 +37,7 @@ procedure TFindDark.DoExecute(var AInputData: Pointer; var AResultData: Pointer)
 const
   GreenDec  = 0.8;
 var
-  x,y,tmpWidth,CurrentPixel,CurrentByte,CurrentBit: integer;
+  x,y,CurrentPixel,CurrentByte,CurrentBit: integer;
   DecodedFrame: PDecodedFrame;
   RGBLine,RGBLineTop,RGBLineBottom: PRGBArray;
   ResultPointer: PByte;

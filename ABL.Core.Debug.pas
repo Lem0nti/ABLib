@@ -3,7 +3,7 @@
 interface
 
 uses
-  Windows, Classes, System.SysUtils, IniFiles;
+  Windows, Classes, SysUtils, IniFiles;
 
 type
   PDebugKey = ^TDebugKey;
@@ -131,8 +131,8 @@ begin
     for q:= 0 to sl.Count - 1 do
     begin
       New(Key);
-      Key.Name:=ShortString(UpperCase(sl.Names[q]));
-      Key.Value:=sl.ValueFromIndex[q]='1';
+      Key^.Name:=ShortString(UpperCase(sl.Names[q]));
+      Key^.Value:=sl.ValueFromIndex[q]='1';
       KeyList.Add(Key);
     end;
   finally
@@ -168,7 +168,7 @@ begin
       for q := 0 to KeyList.Count - 1 do
       begin
         dk:=PDebugKey(KeyList.Items[q]);
-        if dk.Value and (dk.Name=ShortString(AKey)) then
+        if dk^.Value and (dk^.Name=ShortString(AKey)) then
         begin
           //ищем папку
           try

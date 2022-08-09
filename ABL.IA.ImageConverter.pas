@@ -3,7 +3,7 @@ unit ABL.IA.ImageConverter;
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, ABL.Core.BaseQueue, Windows;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, ABL.Core.BaseQueue, Windows, SyncObjs;
 
 type
   TImageConverter=class(TDirectThread)
@@ -97,8 +97,6 @@ var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
   tmpUseGreen: boolean;
-  tmpThreshold,CurValue: byte;
-  CurrentBit: SmallInt;
   BW: PByte;
 begin
   RGBTriple:=PRGBTriple(ImageFrom.Data);
@@ -135,8 +133,7 @@ function TImageConverter.Bit2BGR(ImageFrom: PDecodedFrame): PDecodedFrame;
 var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
-  tmpUseGreen: boolean;
-  tmpThreshold,CurValue: byte;
+  CurValue: byte;
   CurrentBit: SmallInt;
   BW: PByte;
 begin
@@ -168,8 +165,7 @@ end;
 function TImageConverter.Bit2Gray(ImageFrom: PDecodedFrame): PDecodedFrame;
 var
   tmpSize,i: integer;
-  tmpUseGreen: boolean;
-  tmpThreshold,CurValue: byte;
+  CurValue: byte;
   CurrentBit: SmallInt;
   BW,BT: PByte;
 begin
@@ -206,7 +202,7 @@ end;
 
 procedure TImageConverter.DoExecute(var AInputData, AResultData: Pointer);
 var
-  DecodedInput,DecodedOutput: PDecodedFrame;
+  DecodedInput: PDecodedFrame;
   tmpResultType: TABLImageType;
 begin
   DecodedInput:=PDecodedFrame(AInputData);
@@ -261,9 +257,6 @@ function TImageConverter.Gray2BGR(ImageFrom: PDecodedFrame): PDecodedFrame;
 var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
-  tmpUseGreen: boolean;
-  tmpThreshold,CurValue: byte;
-  CurrentBit: SmallInt;
   BW: PByte;
 begin
   tmpSize:=ImageFrom.Width*ImageFrom.Height*3;
@@ -287,10 +280,8 @@ end;
 
 function TImageConverter.Gray2Bit(ImageFrom: PDecodedFrame): PDecodedFrame;
 var
-  RGBTriple: PRGBTriple;
   tmpSize,i: integer;
-  tmpUseGreen: boolean;
-  tmpThreshold,CurValue: byte;
+  tmpThreshold: byte;
   CurrentBit: SmallInt;
   BW,BT: PByte;
 begin

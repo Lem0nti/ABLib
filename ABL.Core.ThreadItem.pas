@@ -67,7 +67,11 @@ begin
       if assigned(FClearPrior) then
         FClearPrior(PMain)
       else
+        {$IFDEF FPC}
+        Freemem(PMain);
+        {$ELSE}
         Dispose(PMain);
+        {$ENDIF}
     end;
     PMain:=AItem;
     FWaitEmptyItems.ResetEvent;

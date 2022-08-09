@@ -48,7 +48,7 @@ procedure TLocalBinarization.DoExecute(var AInputData, AResultData: Pointer);
 var
   DecodedFrame: PDecodedFrame;
   x,y,xFrom,xTo,yFrom,yTo: integer;
-  RGBArrayFrom,RGBArrayTo: PRGBArray;
+  RGBArrayFrom: PRGBArray;
   Neighbor,WholeSquare,PixelOffset,CurrentByte: integer;
   tmpRadius: byte;
   tmpOffset: ShortInt;

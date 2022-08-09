@@ -83,6 +83,7 @@ var
   DrawResult: integer;
   tmpStr: string;
 begin
+  DrawResult:=-2;
   rData:=PDecodedFrame(AInputData);
   try
     if (SkipThru<now) and assigned(FDrawer) then
@@ -101,7 +102,6 @@ begin
         FreeMem(rData^.Data);
     except on e: Exception do
       begin
-
         tmpStr:='rData.Width='+IntToStr(rData.Width)+', DrawResult='+IntToStr(DrawResult);
         SendErrorMsg('TDirectRender('+FName+').DoExecute 103, '+tmpStr+': '+e.ClassName+' - '+e.Message);
       end;
