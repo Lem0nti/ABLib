@@ -138,7 +138,8 @@ begin
                 Move(m_OutPicture^.data[0]^,DecodedFrame^.Data^,DSize);
                 if Terminated then
                   exit;
-                FOutputQueue.Push(DecodedFrame);
+                AResultData:=DecodedFrame;
+                //FOutputQueue.Push(DecodedFrame);
               end;
             end;
           end
