@@ -197,7 +197,8 @@ begin
   FTerminated:=true;
   if assigned(SubThread) then
   begin
-    SubThread.Terminate;
+    if not SubThread.Terminated then
+      SubThread.Terminate;
     SubThread:=nil;
   end;
   if assigned(FInputQueue) then
