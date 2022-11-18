@@ -3,8 +3,8 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Render.Drawer, ABL.VS.VSTypes, ABL.VS.DecodedItem, SysUtils,
-  SyncObjs,
+  ABL.Core.DirectThread, ABL.Render.Drawer, ABL.VS.VSTypes, SysUtils,
+  SyncObjs, ABL.Core.ThreadItem,
   DateUtils, ABL.Core.Debug;
 
 type
@@ -14,18 +14,13 @@ type
   TDirectRender=class(TDirectThread)
   private
     FDrawer: TDrawer;
-    //FWidth, FHeight: integer;
     FLastPicture,OldData: PDecodedFrame;
     SkipThru: TDateTime;
     FHandle: THandle;
     FPaused: boolean;
     procedure UpdateSizes;
     function GetHandle: THandle;
-//    function GetHeight: integer;
-//    function GetWidth: integer;
     procedure SetHandle(const Value: THandle);
-//    procedure SetHeight(const Value: integer);
-//    procedure SetWidth(const Value: integer);
     function GetCameraName: string;
     procedure SetCameraName(const Value: string);
     function GetOnDraw: TDrawNotify;
@@ -33,24 +28,18 @@ type
     function GetPaused: boolean;
     procedure SetPaused(const Value: boolean);
   protected
-    {$IFDEF FPC}
-    procedure ClearData(AData: Pointer); override;
-    {$ENDIF}
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AName: string = ''); override;
     destructor Destroy; override;
     function LastPicture(Original: boolean = false): PDecodedFrame;
-//    procedure SetSize(AWidth, AHeight: integer);
     procedure SkipSecond;
     procedure UpdateScreen;
     property CameraName: string read GetCameraName write SetCameraName;
     property Drawer: TDrawer read FDrawer;
     property Handle: THandle read GetHandle write SetHandle;
-    //property Height: integer read GetHeight write SetHeight;
     property OnDraw: TDrawNotify read GetOnDraw write SetOnDraw;
     property Paused: boolean read GetPaused write SetPaused;
-    //property Width: integer read GetWidth write SetWidth;
   end;
 
 implementation
@@ -60,7 +49,7 @@ implementation
 constructor TDirectRender.Create(AName: string);
 begin
   inherited Create(nil,nil,AName);
-  FInputQueue:=TDecodedItem.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
+  FInputQueue:=TThreadItem.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
   FDrawer:=TDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
 //  FWidth:=1920;
 //  FHeight:=1080;

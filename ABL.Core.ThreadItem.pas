@@ -6,11 +6,7 @@ uses
   ABL.Core.BaseQueue;
 
 type
-  TDataNotify=procedure(var AData: Pointer) of object;
-
   TThreadItem=class(TBaseQueue)
-  private
-    FClearPrior: TDataNotify;
   protected
     PMain: Pointer;
   public
@@ -18,7 +14,6 @@ type
     function Count: Integer; override;
     function Pop: Pointer; override;
     procedure Push(AItem: Pointer); override;
-    property OnClearPrior: TDataNotify read FClearPrior write FClearPrior;
   end;
 
 implementation
@@ -42,7 +37,6 @@ constructor TThreadItem.Create(AName: string);
 begin
   inherited Create(AName);
   PMain:=nil;
-  FClearPrior:=nil;
 end;
 
 function TThreadItem.Pop: Pointer;
@@ -63,16 +57,7 @@ begin
   Lock;
   try
     if assigned(PMain) then
-    begin
-      if assigned(FClearPrior) then
-        FClearPrior(PMain)
-      else
-        {$IFDEF FPC}
-        Freemem(PMain);
-        {$ELSE}
-        Dispose(PMain);
-        {$ENDIF}
-    end;
+      Freemem(PMain);
     PMain:=AItem;
     FWaitEmptyItems.ResetEvent;
     FWaitItemsEvent.SetEvent;
