@@ -70,7 +70,8 @@ end;
 procedure TRTSPParser.DoExecute(var AInputData: Pointer;
   var AResultData: Pointer);
 var
-  ReadedData,ResultData: PDataFrame;
+  ReadedData,ResultData: PTimedDataHeader;
+  TimedDataHeader: TTimedDataHeader;
   DataPassed,OldDataPassed,EHLOffset: Cardinal;
   RTSPHeader: TRTSPHeader;
   PayloadType,Byte_1,Byte_0,x,CSRCCount,NRI,Byte_PayLoad,PacketType,FrameType: byte;
@@ -82,13 +83,13 @@ var
 begin
   DataPassed:=0;
   try
-    ReadedData:=PDataFrame(AInputData);
-    try
-      SetLength(InputBuffer,length(InputBuffer)+ReadedData^.Size);
-      Move(ReadedData^.Data^,InputBuffer[length(InputBuffer)-ReadedData^.Size],ReadedData^.Size);
-    finally
-      FreeMem(ReadedData^.Data);
-    end;
+    ReadedData:=PTimedDataHeader(AInputData);
+    //try
+      SetLength(InputBuffer,length(InputBuffer)+ReadedData^.DataHeader.Size);
+      Move(PByte(NativeUInt(AInputData)+SizeOf(TTimedDataHeader))^,InputBuffer[length(InputBuffer)-ReadedData^.DataHeader.Size],ReadedData^.DataHeader.Size);
+//    finally
+//      FreeMem(ReadedData^.Data);
+//    end;
     while DataPassed<length(InputBuffer) do
     begin
       if Terminated then
@@ -156,7 +157,6 @@ begin
                       tmpLTimeStamp := DateTimeToTimeStamp(now);
                       NTime:=tmpLTimeStamp.Date*Int64(MSecsPerDay)+tmpLTimeStamp.Time-UnixTimeStart;
                     end;
-                      //NTime:=ReadedData^.Time;
                     if (OldPacketType<>28) or (PacketType<>28) then  //если PacketType=28, то только для первого такого пакета
                     begin
                       SetLength(CurFrame,length(CurFrame)+3);
@@ -183,36 +183,39 @@ begin
                       //отправить дальше
                       if assigned(FOutputQueue) then
                       begin
-                        New(ResultData);
-                        ResultData^.Size:=length(CurFrame);
-                        ResultData^.Reserved:=0;
+                        Move(AInputData^,TimedDataHeader,SizeOf(TTimedDataHeader));
+                        TimedDataHeader.DataHeader.Size:=length(CurFrame);
+                        //GetMem(AResultData,);
+//                        New(ResultData);
+//                        ResultData^.Size:=length(CurFrame);
+//                        ResultData^.Reserved:=0;
                         //если фрейм 5, и без 7 и 8, то послать их
                         if CurFrame[3]=101 then  //$65
                         begin
                           if length(SPSPPSFrame_7_8)>0 then
                           begin
-                            ResultData^.Size:=ResultData^.Size+length(SPSPPSFrame_7_8);
-                            GetMem(ResultData^.Data,ResultData^.Size);
-                            Move(SPSPPSFrame_7_8[0],ResultData^.Data^,length(SPSPPSFrame_7_8));
-                            Move(CurFrame[0],PByte(NativeUInt(ResultData^.Data)+NativeUInt(length(SPSPPSFrame_7_8)))^,length(CurFrame));
+                            TimedDataHeader.DataHeader.Size:=TimedDataHeader.DataHeader.Size+length(SPSPPSFrame_7_8);
+                            GetMem(AResultData,TimedDataHeader.DataHeader.Size);
+                            Move(SPSPPSFrame_7_8[0],PByte(NativeUInt(AResultData)+SizeOf(TTimedDataHeader))^,length(SPSPPSFrame_7_8));
+                            Move(CurFrame[0],PByte(NativeUInt(AResultData)+NativeUInt(length(SPSPPSFrame_7_8))+SizeOf(TTimedDataHeader))^,length(CurFrame));
                           end
                           else
                           begin
                             SendErrorMsg('TRTSPParser('+FName+').DoExecute 200: нет SPS и PPS кадров');
                             SubThread.Terminate;
-                            Dispose(ResultData);
                             exit;
                           end;
                         end
                         else
                         begin
                           //скопировать
-                          GetMem(ResultData^.Data,ResultData^.Size);
-                          Move(CurFrame[0],ResultData^.Data^,ResultData^.Size);
+                          GetMem(AResultData,TimedDataHeader.DataHeader.Size);
+                          Move(CurFrame[0],PByte(NativeUInt(AResultData)+SizeOf(TTimedDataHeader))^,length(CurFrame));
                         end;
                         if Terminated then
                           exit;
-                        ResultData^.Time:=NTime;
+                        TimedDataHeader.Time:=NTime;
+                        Move(TimedDataHeader,AResultData^,SizeOf(TTimedDataHeader));
                         Lock;
                         FLastFrameTime:=NTime;
                         Unlock;

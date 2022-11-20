@@ -17,7 +17,7 @@ type
     FOnDraw: TDrawNotify;
     FShowTime: boolean;
     FVerticalMirror: boolean;
-    LastPicture: PDecodedFrame;
+    LastPicture: Pointer;
     SkipThru: TDateTime;
     function GetShowTime: boolean;
     procedure SetShowTime(const Value: boolean);
@@ -32,7 +32,7 @@ type
   public
     constructor Create(AHandle: THandle; AName: string = ''); reintroduce;
     destructor Destroy; override;
-    function Draw(ADecodedFrame: PDecodedFrame): integer;
+    function Draw(ImageData: TImageData): integer;
     procedure SetHandle(const Value: THandle);
     property CameraName: string read GetCameraName write SetCameraName;
     property FocusRect: TRect read GetFocusRect write SetFocusRect;
@@ -62,7 +62,7 @@ begin
   inherited;
 end;
 
-function TDrawer.Draw(ADecodedFrame: PDecodedFrame): integer;
+function TDrawer.Draw(ImageData: TImageData): integer;
 var
   bmpinfo: BITMAPINFO;
   drawDC: HDC;
@@ -89,27 +89,30 @@ begin
         begin
           while ppRect.Width mod 4 > 0 do
             ppRect.Width:=ppRect.Width+1;
-          if (ADecodedFrame.Width>ppRect.Width) or (ADecodedFrame.Height>ppRect.Height) then
+          if (ImageData.ImageDataHeader.Width>ppRect.Width) or (ImageData.ImageDataHeader.Height>ppRect.Height) then
           begin
-            wh:=ADecodedFrame.Width/ppRect.Width;
-            hh:=ADecodedFrame.Height/ppRect.Height;
+            wh:=ImageData.ImageDataHeader.Width/ppRect.Width;
+            hh:=ImageData.ImageDataHeader.Height/ppRect.Height;
             Offset:=0;
             for y := 0 to ppRect.Height-1 do
               for x := 0 to ppRect.Width-1 do
               begin
-                Move(PByte(NativeUInt(ADecodedFrame.Data)+(Round(y*hh)*ADecodedFrame.Width+Round(x*wh))*3)^,
-                    PByte(NativeUInt(ADecodedFrame.Data)+Offset*3)^,3);
+                Move(PByte(NativeUInt(ImageData.Data)+(Round(y*hh)*ImageData.ImageDataHeader.Width+Round(x*wh))*3)^,
+                    PByte(NativeUInt(ImageData.Data)+Offset*3)^,3);
                 inc(Offset);
               end;
-            ADecodedFrame.Width:=ppRect.Width;
-            ADecodedFrame.Height:=ppRect.Height;
+            ImageData.ImageDataHeader.Width:=ppRect.Width;
+            ImageData.ImageDataHeader.Height:=ppRect.Height;
           end;
-          bmpinfo.bmiHeader.biWidth:=ADecodedFrame.Width;
-          bmpinfo.bmiHeader.biSizeImage:=ADecodedFrame.Width*ADecodedFrame.Height*3;
-          bmpinfo.bmiHeader.biHeight:=-ADecodedFrame.Height;
+          bmpinfo.bmiHeader.biWidth:=ImageData.ImageDataHeader.Width;
+          bmpinfo.bmiHeader.biSizeImage:=ImageData.ImageDataHeader.Width*ImageData.ImageDataHeader.Height*3;
+          if ImageData.ImageDataHeader.FlipMarker then
+            bmpinfo.bmiHeader.biHeight:=-ImageData.ImageDataHeader.Height
+          else
+            bmpinfo.bmiHeader.biHeight:=ImageData.ImageDataHeader.Height;
           drawDC:=GetDC(FHandle);
           try
-            StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ADecodedFrame.Width,ADecodedFrame.Height,ADecodedFrame.Data,
+            StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ImageData.ImageDataHeader.Width,ImageData.ImageDataHeader.Height,ImageData.Data,
                 bmpinfo,DIB_RGB_COLORS,SRCCOPY);
             SetBkMode(drawDC,TRANSPARENT);
             lRatio:=1080/ppRect.Width;
@@ -126,11 +129,11 @@ begin
               DrawText(drawDC,FCameraName,Length(FCameraName),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_LEFT);
             if FShowTime then
             begin
-              if (ADecodedFrame.Time>2641367261872)or(ADecodedFrame.Time<0) then
-                SendErrorMsg('TDrawer.Draw 124: invalid time - '+IntToStr(ADecodedFrame.Time))
+              if (ImageData.ImageDataHeader.TimedDataHeader.Time>2641367261872)or(ImageData.ImageDataHeader.TimedDataHeader.Time<0) then
+                SendErrorMsg('TDrawer.Draw 124: invalid time - '+IntToStr(ImageData.ImageDataHeader.TimedDataHeader.Time))
               else
               begin
-                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ADecodedFrame.Time));
+                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ImageData.ImageDataHeader.TimedDataHeader.Time));
                 DrawText(drawDC,OutText,Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
               end;
             end;

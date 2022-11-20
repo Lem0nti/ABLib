@@ -157,7 +157,8 @@ var
   AResultBytes: TBytes;
   w: integer;
   NTime: int64;
-  ReadedData: PDataFrame;
+  ReadedData: TTimedDataHeader;
+  OutputData: Pointer;
   tmpLTimeStamp: TTimeStamp;
   StrNum: string;
 begin
@@ -168,12 +169,15 @@ begin
       SetLength(ABytes,1024);
       SetLength(AResultBytes,0);
       NTime:=0;
+      ReadedData.DataHeader.Magic:=16961;
+      ReadedData.DataHeader.DataType:=1;
+      ReadedData.DataHeader.Version:=0;
+      ReadedData.Reserved:=0;
       while not Terminated do
       begin
         w:=1024;
         while w=1024 do
         begin
-          StrNum:='176';
           if Terminated then
             break;
           {$IFDEF UNIX}
@@ -190,22 +194,21 @@ begin
             break;
           if w=INVALID_SOCKET then
           begin
-            StrNum:='193';
+            StrNum:='197';
             if (not Terminated) and assigned(FReader)  then
             begin
               {$IFDEF UNIX}
-              SendErrorMsg('TConnectionReader.Execute 197: INVALID_SOCKET '+IntToStr(w));
+              SendErrorMsg('TConnectionReader.Execute 201: INVALID_SOCKET '+IntToStr(w));
               {$ELSE}
               w:=WSAGetLastError;
               if w<>10053 then  //graceful
-                SendErrorMsg('TConnectionReader.Execute 201: INVALID_SOCKET '+IntToStr(w)+' - '+SysErrorMessage(w));
+                SendErrorMsg('TConnectionReader.Execute 205: INVALID_SOCKET '+IntToStr(w)+' - '+SysErrorMessage(w));
               {$ENDIF}
             end;
             break;
           end
           else if w>0 then
           begin
-            StrNum:='208';
             SetLength(AResultBytes,length(AResultBytes)+w);
             Move(ABytes[0],AResultBytes[length(AResultBytes)-w],w);
             if (FMaxBuffer>0) and (length(AResultBytes)>=FMaxBuffer) then
@@ -214,17 +217,16 @@ begin
         end;
         if (w>0) and (length(AResultBytes)>0) then
         begin
-          new(ReadedData);
-          ReadedData^.Time:=NTime;
-          ReadedData^.Reserved:=0;
-          ReadedData^.Size:=length(AResultBytes);
-          GetMem(ReadedData^.Data,ReadedData^.Size);
-          Move(AResultBytes[0],ReadedData^.Data^,length(AResultBytes));
+          ReadedData.Time:=NTime;
+          ReadedData.DataHeader.Size:=length(AResultBytes)+SizeOf(TTimedDataHeader);
+          GetMem(OutputData,ReadedData.DataHeader.Size);
+          Move(ReadedData,OutputData^,SizeOf(TTimedDataHeader));
+          Move(AResultBytes[0],PByte(NativeUInt(OutputData)+SizeOf(TTimedDataHeader))^,length(AResultBytes));
           if assigned(FReader) then
-            FReader.IncTraffic(ReadedData^.Size)
+            FReader.IncTraffic(length(AResultBytes))
           else
             break;
-          FOutputQueue.Push(ReadedData);
+          FOutputQueue.Push(OutputData);
           SetLength(AResultBytes,0);
           NTime:=0;
         end

@@ -2,12 +2,19 @@
 
 interface
 
+uses
+  ABL.Core.CoreTypes;
+
 type
-  PDataFrame=^TDataFrame;
-  TDataFrame=record
+  PTimedDataHeader=^TTimedDataHeader;
+  TTimedDataHeader=record
+    DataHeader: TDataHeader;
     Time: int64;
-    Size: Cardinal;
-    Reserved: Byte;
+    Reserved: Int64;
+  end;
+
+  TTimedData=record
+    TimedDataHeader: TTimedDataHeader;
     Data: Pointer;
   end;
 

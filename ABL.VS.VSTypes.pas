@@ -2,15 +2,25 @@
 
 interface
 
+uses
+  ABL.IO.IOTypes;
+
 type
   TABLImageType = (itBGR, itGray, itBit);
 
-  PDecodedFrame=^TDecodedFrame;
-  TDecodedFrame=record
-    Time: int64;
+  PImageDataHeader=^TImageDataHeader;
+  TImageDataHeader=record
+    TimedDataHeader: TTimedDataHeader;
     Width,Height: Word;
     Left,Top: Word;
     ImageType: TABLImageType;
+    FlipMarker: boolean;
+    Reserved0: Word;
+    Reserved1: integer;
+  end;
+
+  TImageData=record
+    ImageDataHeader: TImageDataHeader;
     Data: Pointer;
   end;
 

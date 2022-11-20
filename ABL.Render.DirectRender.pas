@@ -5,7 +5,7 @@ interface
 uses
   ABL.Core.DirectThread, ABL.Render.Drawer, ABL.VS.VSTypes, SysUtils,
   SyncObjs, ABL.Core.ThreadItem,
-  DateUtils, ABL.Core.Debug;
+  DateUtils, ABL.Core.Debug, ABL.Core.CoreUtils;
 
 type
 
@@ -14,7 +14,7 @@ type
   TDirectRender=class(TDirectThread)
   private
     FDrawer: TDrawer;
-    FLastPicture,OldData: PDecodedFrame;
+    FLastPicture,OldData: Pointer;
     SkipThru: TDateTime;
     FHandle: THandle;
     FPaused: boolean;
@@ -32,7 +32,7 @@ type
   public
     constructor Create(AName: string = ''); override;
     destructor Destroy; override;
-    function LastPicture(Original: boolean = false): PDecodedFrame;
+    function LastPicture(Original: boolean = false): Pointer;
     procedure SkipSecond;
     procedure UpdateScreen;
     property CameraName: string read GetCameraName write SetCameraName;
@@ -56,12 +56,11 @@ begin
   SkipThru:=0;
   FLastPicture:=nil;
   Active:=true;
-  new(FLastPicture);
-  FLastPicture.Time:=0;
-  GetMem(FLastPicture.Data,3000*2000*3);
+  //new(FLastPicture);
+  //FLastPicture.Time:=0;
+  GetMem(FLastPicture,3000*2048*3);
   FPaused:=false;
-  new(OldData);
-  GetMem(OldData.Data,3000*2000*3);
+  GetMem(OldData,3000*2048*3);
 end;
 
 destructor TDirectRender.Destroy;
@@ -163,31 +162,29 @@ end;
 //  end;
 //end;
 
-function TDirectRender.LastPicture(Original: boolean = false): PDecodedFrame;
+function TDirectRender.LastPicture(Original: boolean = false): Pointer;
 var
-  DecodedFrame: PDecodedFrame;
+  DecodedFrame: PImageDataHeader;
+  sz: Cardinal;
 begin
   result:=nil;
-  if Original then
-    DecodedFrame:=OldData
-  else
-    DecodedFrame:=FLastPicture;
-  if assigned(DecodedFrame) then
-  begin
-    New(result);
-    FLock.Enter;
-    try
-      result.Time:=DecodedFrame.Time;
-      result.Width:=DecodedFrame.Width;
-      result.Height:=DecodedFrame.Height;
-      result.Left:=DecodedFrame.Left;
-      result.Top:=DecodedFrame.Top;
-      result.ImageType:=DecodedFrame.ImageType;
-      GetMem(result.Data,result.Width*result.Height*3);
-      Move(DecodedFrame.Data^,result.Data^,result.Width*result.Height*3);
-    finally
-      FLock.Leave;
+  FLock.Enter;
+  try
+    if Original then
+      DecodedFrame:=OldData
+    else
+      DecodedFrame:=FLastPicture;
+    if assigned(DecodedFrame) then
+    begin
+      sz:=DataSize(DecodedFrame);
+      if sz>0 then
+      begin
+        GetMem(result,sz);
+        Move(DecodedFrame^,result^,sz);
+      end;
     end;
+  finally
+    FLock.Leave;
   end;
 end;
 
