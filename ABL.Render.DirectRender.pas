@@ -14,7 +14,7 @@ type
   TDirectRender=class(TDirectThread)
   private
     FDrawer: TDrawer;
-    FLastPicture,OldData: Pointer;
+    FLastPicture,OldData: PImageDataHeader;
     SkipThru: TDateTime;
     FHandle: THandle;
     FPaused: boolean;
@@ -67,20 +67,19 @@ destructor TDirectRender.Destroy;
 begin
   if assigned(FDrawer) then
     FreeAndNil(FDrawer);
-  FreeMem(FLastPicture.Data);
-  Dispose(FLastPicture);
+  FreeMem(FLastPicture);
   inherited;
 end;
 
 procedure TDirectRender.DoExecute(var AInputData: Pointer;
   var AResultData: Pointer);
 var
-  rData: PDecodedFrame;
+  rData: PImageDataHeader;
   DrawResult: integer;
   tmpStr: string;
 begin
   DrawResult:=-2;
-  rData:=PDecodedFrame(AInputData);
+  rData:=AInputData;
   try
     if (SkipThru<now) and assigned(FDrawer) then
     begin
@@ -88,13 +87,13 @@ begin
       begin
         OldData.Width:=rData.Width;
         OldData.Height:=rData.Height;
-        OldData.Time:=rData.Time;
+        OldData.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
         Move(rData.Data^,OldData.Data^,rData.Width*rData.Height*3);
         DrawResult:=FDrawer.Draw(rData);
         Move(rData.Data^,FLastPicture.Data^,rData.Width*rData.Height*3);
         FLastPicture.Width:=rData.Width;
         FLastPicture.Height:=rData.Height;
-        FLastPicture.Time:=rData.Time;
+        FLastPicture.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
         if DrawResult<0 then
           SkipSecond;
       end;

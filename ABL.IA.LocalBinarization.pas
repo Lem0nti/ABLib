@@ -46,7 +46,7 @@ end;
 
 procedure TLocalBinarization.DoExecute(var AInputData, AResultData: Pointer);
 var
-  DecodedFrame: PDecodedFrame;
+  DecodedFrame: PImageDataHeader;
   x,y,xFrom,xTo,yFrom,yTo: integer;
   RGBArrayFrom: PRGBArray;
   Neighbor,WholeSquare,PixelOffset,CurrentByte: integer;
@@ -56,12 +56,12 @@ var
   CurrentBit: SmallInt;
   BW: PByte;
 begin
-  DecodedFrame:=PDecodedFrame(AInputData);
-  if DecodedFrame.ImageType=itBGR then
+  DecodedFrame:=AInputData;
+  if DecodedFrame^.ImageType=itBGR then
   begin
     //интегральное
     SetLength(Integral,DecodedFrame.Width,DecodedFrame.Height);
-    RGBArrayFrom:=DecodedFrame.Data;
+    RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader));
     //сначала все нулевые, так быстрее
     Integral[0,0]:=RGBArrayFrom[0].rgbtGreen;
     for y := 1 to DecodedFrame.Height-1 do
@@ -81,7 +81,7 @@ begin
     //сначала все приграничные, так быстрее
     for y := 0 to tmpRadius-1 do
     begin
-      RGBArrayFrom:=Pointer(NativeUInt(DecodedFrame.Data)+y*DecodedFrame.Width*3);
+      RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
       yTo:=y+tmpRadius;
       for x := 0 to DecodedFrame.Width-1 do
       begin
@@ -113,7 +113,7 @@ begin
     begin
       if Terminated then
         exit;
-      RGBArrayFrom:=Pointer(NativeUInt(DecodedFrame.Data)+y*DecodedFrame.Width*3);
+      RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
       yFrom:=y-tmpRadius;
       yTo:=y+tmpRadius;
       if yTo>DecodedFrame.Height-1 then
@@ -147,13 +147,12 @@ begin
     DecodedFrame.ImageType:=itBit;
     if assigned(FOutputQueue) then
     begin
-      Move(FBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
+      DecodedFrame.TimedDataHeader.DataHeader.Size:=(DecodedFrame.Width*DecodedFrame.Height div 8)+1+SizeOf(TImageDataHeader);
+      Move(FBuffer^,Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader))^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
       AResultData:=AInputData;
       AInputData:=nil;
     end;
   end;
-  if assigned(AInputData) then
-    FreeMem(DecodedFrame.Data);
 end;
 
 function TLocalBinarization.GetOffset: ShortInt;

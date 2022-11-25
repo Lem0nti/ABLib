@@ -17,6 +17,7 @@ type
     FlipMarker: boolean;
     Reserved0: Word;
     Reserved1: integer;
+    function Data: Pointer;
   end;
 
   TImageData=record
@@ -25,5 +26,12 @@ type
   end;
 
 implementation
+
+{ TImageDataHeader }
+
+function TImageDataHeader.Data: Pointer;
+begin
+  result:=Pointer(NativeUInt(@Self)+SizeOf(TImageDataHeader));
+end;
 
 end.

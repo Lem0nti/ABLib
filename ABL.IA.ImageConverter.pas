@@ -11,12 +11,12 @@ type
     FResultType: TABLImageType;
     FUseGreen: boolean;
     FThreshold: byte;
-    function BGR2Bit(ImageFrom: PDecodedFrame): PDecodedFrame;
-    function BGR2Gray(ImageFrom: PDecodedFrame): PDecodedFrame;
-    function Bit2BGR(ImageFrom: PDecodedFrame): PDecodedFrame;
-    function Bit2Gray(ImageFrom: PDecodedFrame): PDecodedFrame;
-    function Gray2BGR(ImageFrom: PDecodedFrame): PDecodedFrame;
-    function Gray2Bit(ImageFrom: PDecodedFrame): PDecodedFrame;
+    function BGR2Bit(ImageFrom: TImageData): Pointer;
+    function BGR2Gray(ImageFrom: TImageData): Pointer;
+    function Bit2BGR(ImageFrom: TImageData): Pointer;
+    function Bit2Gray(ImageFrom: TImageData): Pointer;
+    function Gray2BGR(ImageFrom: TImageData): Pointer;
+    function Gray2Bit(ImageFrom: TImageData): Pointer;
     function GetResultType: TABLImageType;
     function GetThreshold: byte;
     function GetUseGreen: boolean;
@@ -36,7 +36,7 @@ implementation
 
 { TImageConverter }
 
-function TImageConverter.BGR2Bit(ImageFrom: PDecodedFrame): PDecodedFrame;
+function TImageConverter.BGR2Bit(ImageFrom: TImageData): Pointer;
 var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
@@ -44,26 +44,23 @@ var
   tmpThreshold,CurValue: byte;
   CurrentBit: SmallInt;
   BW: PByte;
+  ResultImage: PImageDataHeader;
 begin
   RGBTriple:=PRGBTriple(ImageFrom.Data);
-  tmpSize:=ImageFrom.Width*ImageFrom.Height;
-  tmpSize:=tmpSize div 8+1;
-  new(result);
-  result.Width:=ImageFrom.Width;
-  result.Height:=ImageFrom.Height;
-  result.Left:=ImageFrom.Left;
-  result.Top:=ImageFrom.Top;
-  result.Time:=ImageFrom.Time;
-  result.ImageType:=itBit;
-  GetMem(result.Data,tmpSize);
+  tmpSize:=ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height;
+  tmpSize:=tmpSize div 8+1+SizeOf(TImageDataHeader);
+  GetMem(result,tmpSize);
+  move(ImageFrom,result^,SizeOf(TImageDataHeader));
+  ResultImage:=result;
+  ResultImage^.ImageType:=itBit;
   FLock.Enter;
   tmpUseGreen:=FUseGreen;
   tmpThreshold:=FThreshold;
   FLock.Leave;
-  BW:=result.Data;
+  BW:=PByte(NativeUInt(result)+SizeOf(TImageDataHeader));
   BW^:=0;
   if tmpUseGreen then
-    for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+    for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
     begin
       CurValue:=RGBTriple.rgbtGreen;
       CurrentBit:=i mod 8;
@@ -77,7 +74,7 @@ begin
       Inc(RGBTriple);
     end
   else
-    for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+    for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
     begin
       CurValue:=Round(RGBTriple.rgbtRed*0.299+RGBTriple.rgbtGreen*0.587+RGBTriple.rgbtBlue*0.114);
       CurrentBit:=i mod 8;
@@ -92,36 +89,33 @@ begin
     end;
 end;
 
-function TImageConverter.BGR2Gray(ImageFrom: PDecodedFrame): PDecodedFrame;
+function TImageConverter.BGR2Gray(ImageFrom: TImageData): Pointer;
 var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
   tmpUseGreen: boolean;
   BW: PByte;
+  ResultImage: PImageDataHeader;
 begin
   RGBTriple:=PRGBTriple(ImageFrom.Data);
-  tmpSize:=ImageFrom.Width*ImageFrom.Height;
-  new(result);
-  result.Width:=ImageFrom.Width;
-  result.Height:=ImageFrom.Height;
-  result.Left:=ImageFrom.Left;
-  result.Top:=ImageFrom.Top;
-  result.Time:=ImageFrom.Time;
-  result.ImageType:=itGray;
-  GetMem(result.Data,tmpSize);
+  tmpSize:=ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height+SizeOf(TImageDataHeader);
+  GetMem(result,tmpSize);
+  move(ImageFrom,result^,SizeOf(TImageDataHeader));
+  ResultImage:=result;
+  ResultImage^.ImageType:=itGray;
   FLock.Enter;
   tmpUseGreen:=FUseGreen;
   FLock.Leave;
-  BW:=result.Data;
+  BW:=PByte(NativeUInt(result)+SizeOf(TImageDataHeader));
   if tmpUseGreen then
-    for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+    for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
     begin
       BW^:=RGBTriple.rgbtGreen;
       Inc(BW);
       Inc(RGBTriple);
     end
   else
-    for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+    for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
     begin
       BW^:=Round(RGBTriple.rgbtRed*0.299+RGBTriple.rgbtGreen*0.587+RGBTriple.rgbtBlue*0.114);
       Inc(BW);
@@ -129,26 +123,23 @@ begin
     end;
 end;
 
-function TImageConverter.Bit2BGR(ImageFrom: PDecodedFrame): PDecodedFrame;
+function TImageConverter.Bit2BGR(ImageFrom: TImageData): Pointer;
 var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
   CurValue: byte;
   CurrentBit: SmallInt;
   BW: PByte;
+  ResultImage: PImageDataHeader;
 begin
-  tmpSize:=ImageFrom.Width*ImageFrom.Height*3;
-  new(result);
-  result.Width:=ImageFrom.Width;
-  result.Height:=ImageFrom.Height;
-  result.Left:=ImageFrom.Left;
-  result.Top:=ImageFrom.Top;
-  result.Time:=ImageFrom.Time;
-  result.ImageType:=itBGR;
-  GetMem(result.Data,tmpSize);
+  tmpSize:=ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height*3+SizeOf(TImageDataHeader);
+  GetMem(result,tmpSize);
+  move(ImageFrom,result^,SizeOf(TImageDataHeader));
+  ResultImage:=result;
+  ResultImage^.ImageType:=itBGR;
   BW:=ImageFrom.Data;
-  RGBTriple:=PRGBTriple(result.Data);
-  for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+  RGBTriple:=PRGBTriple(NativeUInt(result)+SizeOf(TImageDataHeader));
+  for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
   begin
     CurrentBit:=i mod 8;
     if (BW^ and (1 shl CurrentBit)=(1 shl CurrentBit)) then
@@ -162,25 +153,22 @@ begin
   end;
 end;
 
-function TImageConverter.Bit2Gray(ImageFrom: PDecodedFrame): PDecodedFrame;
+function TImageConverter.Bit2Gray(ImageFrom: TImageData): Pointer;
 var
   tmpSize,i: integer;
   CurValue: byte;
   CurrentBit: SmallInt;
   BW,BT: PByte;
+  ResultImage: PImageDataHeader;
 begin
-  tmpSize:=ImageFrom.Width*ImageFrom.Height;
-  new(result);
-  result.Width:=ImageFrom.Width;
-  result.Height:=ImageFrom.Height;
-  result.Left:=ImageFrom.Left;
-  result.Top:=ImageFrom.Top;
-  result.Time:=ImageFrom.Time;
-  result.ImageType:=itGray;
-  GetMem(result.Data,tmpSize);
+  tmpSize:=ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height+SizeOf(TImageDataHeader);
+  GetMem(result,tmpSize);
+  move(ImageFrom,result^,SizeOf(TImageDataHeader));
+  ResultImage:=result;
+  ResultImage^.ImageType:=itGray;
   BW:=ImageFrom.Data;
-  BT:=PByte(result.Data);
-  for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+  BT:=PByte(NativeUInt(result)+SizeOf(TImageDataHeader));
+  for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
   begin
     CurrentBit:=i mod 8;
     if (BW^ and (1 shl CurrentBit))=(1 shl CurrentBit) then
@@ -202,33 +190,30 @@ end;
 
 procedure TImageConverter.DoExecute(var AInputData, AResultData: Pointer);
 var
-  DecodedInput: PDecodedFrame;
   tmpResultType: TABLImageType;
+  ImageData: TImageData;
 begin
-  DecodedInput:=PDecodedFrame(AInputData);
-  try
-    FLock.Enter;
-    tmpResultType:=FResultType;
-    FLock.Leave;
-    case DecodedInput.ImageType of
-      itBGR:
-        if tmpResultType=itBit then
-          AResultData:=BGR2Bit(DecodedInput)
-        else if tmpResultType=itGray then
-          AResultData:=BGR2Gray(DecodedInput);
-      itBit:
-        if tmpResultType=itBGR then
-          AResultData:=Bit2BGR(DecodedInput)
-        else if tmpResultType=itGray then
-          AResultData:=Bit2Gray(DecodedInput);
-      itGray:
-        if tmpResultType=itBit then
-          AResultData:=Gray2Bit(DecodedInput)
-        else if tmpResultType=itBGR then
-          AResultData:=Gray2BGR(DecodedInput);
-    end;
-  finally
-    FreeMem(DecodedInput.Data);
+  Move(AInputData,ImageData,SizeOf(TImageDataHeader));
+  ImageData.Data:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader));
+  FLock.Enter;
+  tmpResultType:=FResultType;
+  FLock.Leave;
+  case ImageData.ImageDataHeader.ImageType of
+    itBGR:
+      if tmpResultType=itBit then
+        AResultData:=BGR2Bit(ImageData)
+      else if tmpResultType=itGray then
+        AResultData:=BGR2Gray(ImageData);
+    itBit:
+      if tmpResultType=itBGR then
+        AResultData:=Bit2BGR(ImageData)
+      else if tmpResultType=itGray then
+        AResultData:=Bit2Gray(ImageData);
+    itGray:
+      if tmpResultType=itBit then
+        AResultData:=Gray2Bit(ImageData)
+      else if tmpResultType=itBGR then
+        AResultData:=Gray2BGR(ImageData);
   end;
 end;
 
@@ -253,24 +238,21 @@ begin
   FLock.Leave;
 end;
 
-function TImageConverter.Gray2BGR(ImageFrom: PDecodedFrame): PDecodedFrame;
+function TImageConverter.Gray2BGR(ImageFrom: TImageData): Pointer;
 var
   RGBTriple: PRGBTriple;
   tmpSize,i: integer;
   BW: PByte;
+  ResultImage: PImageDataHeader;
 begin
-  tmpSize:=ImageFrom.Width*ImageFrom.Height*3;
-  new(result);
-  result.Width:=ImageFrom.Width;
-  result.Height:=ImageFrom.Height;
-  result.Left:=ImageFrom.Left;
-  result.Top:=ImageFrom.Top;
-  result.Time:=ImageFrom.Time;
-  result.ImageType:=itBGR;
-  GetMem(result.Data,tmpSize);
+  tmpSize:=ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height*3+SizeOf(TImageDataHeader);
+  GetMem(result,tmpSize);
+  move(ImageFrom,result^,SizeOf(TImageDataHeader));
+  ResultImage:=result;
+  ResultImage^.ImageType:=itBGR;
   BW:=ImageFrom.Data;
-  RGBTriple:=PRGBTriple(result.Data);
-  for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+  RGBTriple:=PRGBTriple(NativeUInt(result)+SizeOf(TImageDataHeader));
+  for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
   begin
     FillChar(RGBTriple^,3,BW^);
     Inc(BW);
@@ -278,30 +260,27 @@ begin
   end;
 end;
 
-function TImageConverter.Gray2Bit(ImageFrom: PDecodedFrame): PDecodedFrame;
+function TImageConverter.Gray2Bit(ImageFrom: TImageData): Pointer;
 var
   tmpSize,i: integer;
   tmpThreshold: byte;
   CurrentBit: SmallInt;
   BW,BT: PByte;
+  ResultImage: PImageDataHeader;
 begin
-  tmpSize:=ImageFrom.Width*ImageFrom.Height;
-  tmpSize:=tmpSize div 8+1;
-  new(result);
-  result.Width:=ImageFrom.Width;
-  result.Height:=ImageFrom.Height;
-  result.Left:=ImageFrom.Left;
-  result.Top:=ImageFrom.Top;
-  result.Time:=ImageFrom.Time;
-  result.ImageType:=itBit;
-  GetMem(result.Data,tmpSize);
+  tmpSize:=ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height;
+  tmpSize:=tmpSize div 8+1+SizeOf(TImageDataHeader);
+  GetMem(result,tmpSize);
+  move(ImageFrom,result^,SizeOf(TImageDataHeader));
+  ResultImage:=result;
+  ResultImage^.ImageType:=itBit;
   FLock.Enter;
   tmpThreshold:=FThreshold;
   FLock.Leave;
-  BT:=result.Data;
+  BT:=PByte(NativeUInt(result)+SizeOf(TImageDataHeader));
   BT^:=0;
   BW:=ImageFrom.Data;
-  for i:=0 to ImageFrom.Width*ImageFrom.Height-1 do
+  for i:=0 to ImageFrom.ImageDataHeader.Width*ImageFrom.ImageDataHeader.Height-1 do
   begin
     CurrentBit:=i mod 8;
     if BW^>tmpThreshold then

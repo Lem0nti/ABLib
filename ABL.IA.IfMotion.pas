@@ -44,7 +44,7 @@ procedure TIfMotion.DoExecute(var AInputData, AResultData: Pointer);
 var
   Offset,Can,x,y: integer;
   RGBTriple: PRGBTriple;
-  DecodedFrame: PDecodedFrame;
+  DecodedFrame: PImageDataHeader;
   rcWidth,rcHeight: Real;
   tmpRows,tmpCols: word;
 
@@ -64,8 +64,7 @@ var
   end;
 
 begin
-  DecodedFrame:=PDecodedFrame(AInputData);
-  try
+  DecodedFrame:=AInputData;
     FLock.Enter;
     tmpRows:=FRows;
     tmpCols:=FCols;
@@ -105,10 +104,6 @@ begin
         end;
       end;
     end;
-  finally
-    if assigned(AInputData) then
-      FreeMem(DecodedFrame.Data);
-  end;
 end;
 
 function TIfMotion.GetCols: word;

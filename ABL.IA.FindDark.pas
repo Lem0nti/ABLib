@@ -38,13 +38,13 @@ const
   GreenDec  = 0.8;
 var
   x,y,CurrentPixel,CurrentByte,CurrentBit: integer;
-  DecodedFrame: PDecodedFrame;
+  DecodedFrame: PImageDataHeader;
   RGBLine,RGBLineTop,RGBLineBottom: PRGBArray;
   ResultPointer: PByte;
   tmpDataSize: integer;
   CurGreen: byte;
 begin
-  DecodedFrame:=PDecodedFrame(AInputData);
+  DecodedFrame:=AInputData;
   if DecodedFrame.ImageType=itBGR then
   begin
     tmpDataSize:=((DecodedFrame.Width*DecodedFrame.Height) div 8)+1;

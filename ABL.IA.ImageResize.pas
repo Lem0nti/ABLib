@@ -34,12 +34,13 @@ end;
 
 procedure TImageResize.DoExecute(var AInputData, AResultData: Pointer);
 var
-  DecodedFrame, OutputFrame: PDecodedFrame;
+  DecodedFrame, OutputFrame: PImageDataHeader;
   tmpWidth, tmpHeight: word;
   wh,hh: Extended;
   OffsetTo,OffsetFrom,x,y: integer;
+  sz: Cardinal;
 begin
-  DecodedFrame:=PDecodedFrame(AInputData);
+  DecodedFrame:=AInputData;
   try
     FLock.Enter;
     tmpWidth:=FWidth;
@@ -50,11 +51,13 @@ begin
     OffsetTo:=0;
     if (DecodedFrame.Width<tmpWidth) or (DecodedFrame.Height<tmpHeight) then //надо ли увеличивать картинку
     begin
-      new(OutputFrame);
+      sz:=tmpWidth*tmpHeight*3+SizeOf(TImageDataHeader);
+      GetMem(AResultData,sz);
+      move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
+      OutputFrame:=AResultData;
       OutputFrame.Height:=tmpHeight;
       OutputFrame.Width:=tmpWidth;
-      OutputFrame.Time:=DecodedFrame.Time;
-      GetMem(OutputFrame.Data,tmpWidth*tmpHeight*3);
+      OutputFrame.TimedDataHeader.DataHeader.Size:=sz;
       for y:=0 to tmpHeight-1 do
         for x:=0 to tmpWidth-1 do
         begin
