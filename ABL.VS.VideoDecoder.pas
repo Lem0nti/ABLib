@@ -130,6 +130,8 @@ begin
               GetMem(AResultData,DSize+SizeOf(TImageDataHeader));
               Move(AInputData^,AResultData^,SizeOf(TTimedDataHeader));
               DecodedFrame:=PImageDataHeader(AResultData);
+              DecodedFrame^.TimedDataHeader.DataHeader.DataType:=2;
+              DecodedFrame^.TimedDataHeader.DataHeader.Size:=VideoContext^.width*VideoContext^.height*3;
               DecodedFrame^.Width:=VideoContext^.width;
               DecodedFrame^.Height:=VideoContext^.height;
               DecodedFrame^.Left:=0;

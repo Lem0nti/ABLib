@@ -46,51 +46,47 @@ end;
 
 procedure TImageCutter.DoExecute(var AInputData, AResultData: Pointer);
 var
-  DecodedFrame,OutputFrame: PDecodedFrame;
+  DecodedFrame,OutputFrame: PImageDataHeader;
   AbsRect, ACutRect: TRect;
   y,q,hl: integer;
   tmpOutputQueue: TBaseQueue;
 begin
-  DecodedFrame:=PDecodedFrame(AInputData);
-  try
-    q:=0;
-    while true do
+  DecodedFrame:=AInputData;
+  q:=0;
+  while true do
+  begin
+    tmpOutputQueue:=nil;
+    FLock.Enter;
+    hl:=high(ReceiverList);
+    if q<=hl then
     begin
-      tmpOutputQueue:=nil;
-      FLock.Enter;
-      hl:=high(ReceiverList);
-      if q<=hl then
-      begin
-        ACutRect:=ReceiverList[q].CutRect;
-        tmpOutputQueue:=ReceiverList[q].Receiver;
-      end;
-      FLock.Leave;
-      if q>hl then
-        break
-      else
-      begin
-        //превращаем относительный прямоугольник в конкретный
-        AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame.Width),Round((ACutRect.Top)/10000*DecodedFrame.Height),
-            Round(ACutRect.Right/10000*DecodedFrame.Width),Round((ACutRect.Bottom)/10000*DecodedFrame.Height));
-        while AbsRect.Width mod 4 > 0 do
-          AbsRect.Width:=AbsRect.Width+1;
-        if assigned(tmpOutputQueue) then
-        begin
-          new(OutputFrame);
-          OutputFrame.Width:=AbsRect.Width;
-          OutputFrame.Height:=AbsRect.Height;
-          OutputFrame.Time:=DecodedFrame.Time;
-          GetMem(OutputFrame^.Data,OutputFrame.Width*OutputFrame.Height*3);
-          for y := AbsRect.Top to AbsRect.Bottom do
-            Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
-                PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
-          tmpOutputQueue.Push(OutputFrame);
-        end;
-        inc(q);
-      end;
+      ACutRect:=ReceiverList[q].CutRect;
+      tmpOutputQueue:=ReceiverList[q].Receiver;
     end;
-  finally
-    FreeMem(DecodedFrame.Data);
+    FLock.Leave;
+    if q>hl then
+      break
+    else
+    begin
+      //превращаем относительный прямоугольник в конкретный
+      AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame.Width),Round((ACutRect.Top)/10000*DecodedFrame.Height),
+          Round(ACutRect.Right/10000*DecodedFrame.Width),Round((ACutRect.Bottom)/10000*DecodedFrame.Height));
+      while AbsRect.Width mod 4 > 0 do
+        AbsRect.Width:=AbsRect.Width+1;
+      if assigned(tmpOutputQueue) then
+      begin
+        GetMem(AResultData,SizeOf(TImageDataHeader)+AbsRect.Width*AbsRect.Height*3);
+        Move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
+        OutputFrame:=AResultData;
+        OutputFrame.Width:=AbsRect.Width;
+        OutputFrame.Height:=AbsRect.Height;
+        for y := AbsRect.Top to AbsRect.Bottom do
+          Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
+              PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
+        tmpOutputQueue.Push(OutputFrame);
+      end;
+      inc(q);
+    end;
   end;
 end;
 

@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.TimerThread, ABL.Core.BaseQueue, ABL.Core.BaseThread, ABL.Core.ThreadQueue, SysUtils,
-  {$IFNDEF FPC}PsAPI,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} ABL.Core.Debug, SyncObjs;
+  {$IFNDEF FPC}PsAPI,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} ABL.Core.Debug, SyncObjs, ABL.Core.ThreadItem;
 
 type
   TThreadController=class(TTimerThread)
@@ -25,6 +25,7 @@ type
     constructor Create; reintroduce;
     function CheckForAllEmpty: boolean;
     function GetStructure: string;
+    function ItemByName(AName: string): TThreadItem;
     function ThreadByName(AName: string): TBaseThread;
     function QueueByName(AName: string): TBaseQueue;
     property LogMem: Cardinal read GetLogMem write SetLogMem;
@@ -190,6 +191,11 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+function TThreadController.ItemByName(AName: string): TThreadItem;
+begin
+
 end;
 
 function TThreadController.QueueByName(AName: string): TBaseQueue;

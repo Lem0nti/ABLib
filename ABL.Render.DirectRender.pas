@@ -32,7 +32,7 @@ type
   public
     constructor Create(AName: string = ''); override;
     destructor Destroy; override;
-    function LastPicture(Original: boolean = false): Pointer;
+    function LastPicture(Original: boolean = false): PImageDataHeader;
     procedure SkipSecond;
     procedure UpdateScreen;
     property CameraName: string read GetCameraName write SetCameraName;
@@ -80,33 +80,21 @@ var
 begin
   DrawResult:=-2;
   rData:=AInputData;
-  try
-    if (SkipThru<now) and assigned(FDrawer) then
+  if (SkipThru<now) and assigned(FDrawer) then
+  begin
+    if not FPaused then
     begin
-      if not FPaused then
-      begin
-        OldData.Width:=rData.Width;
-        OldData.Height:=rData.Height;
-        OldData.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
-        Move(rData.Data^,OldData.Data^,rData.Width*rData.Height*3);
-        DrawResult:=FDrawer.Draw(rData);
-        Move(rData.Data^,FLastPicture.Data^,rData.Width*rData.Height*3);
-        FLastPicture.Width:=rData.Width;
-        FLastPicture.Height:=rData.Height;
-        FLastPicture.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
-        if DrawResult<0 then
-          SkipSecond;
-      end;
-    end;
-  finally
-    try
-      if assigned(rData) then
-        FreeMem(rData^.Data);
-    except on e: Exception do
-      begin
-        tmpStr:='rData.Width='+IntToStr(rData.Width)+', DrawResult='+IntToStr(DrawResult);
-        SendErrorMsg('TDirectRender('+FName+').DoExecute 103, '+tmpStr+': '+e.ClassName+' - '+e.Message);
-      end;
+      OldData.Width:=rData.Width;
+      OldData.Height:=rData.Height;
+      OldData.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
+      Move(rData^,OldData^,rData.TimedDataHeader.DataHeader.Size);
+      DrawResult:=FDrawer.Draw(rData);
+      Move(rData.Data^,FLastPicture.Data^,rData.Width*rData.Height*3);
+      FLastPicture.Width:=rData.Width;
+      FLastPicture.Height:=rData.Height;
+      FLastPicture.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
+      if DrawResult<0 then
+        SkipSecond;
     end;
   end;
 end;
@@ -161,7 +149,7 @@ end;
 //  end;
 //end;
 
-function TDirectRender.LastPicture(Original: boolean = false): Pointer;
+function TDirectRender.LastPicture(Original: boolean = false): PImageDataHeader;
 var
   DecodedFrame: PImageDataHeader;
   sz: Cardinal;
@@ -175,7 +163,7 @@ begin
       DecodedFrame:=FLastPicture;
     if assigned(DecodedFrame) then
     begin
-      sz:=DataSize(DecodedFrame);
+      sz:=DecodedFrame.TimedDataHeader.DataHeader.Size;
       if sz>0 then
       begin
         GetMem(result,sz);
@@ -278,7 +266,7 @@ end;
 
 procedure TDirectRender.UpdateScreen;
 begin
-  if assigned(FLastPicture) and (FLastPicture.Time>0) then
+  if assigned(FLastPicture) and (FLastPicture.TimedDataHeader.Time>0) then
     Drawer.Draw(FLastPicture);
 end;
 
