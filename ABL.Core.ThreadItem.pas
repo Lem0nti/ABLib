@@ -11,6 +11,7 @@ type
     PMain: Pointer;
   public
     constructor Create(AName: string = ''); override;
+    procedure Clear; override;
     function Count: Integer; override;
     function Pop: Pointer; override;
     procedure Push(AItem: Pointer); override;
@@ -20,16 +21,32 @@ implementation
 
 { TThreadItem }
 
+procedure TThreadItem.Clear;
+begin
+  FLock.Enter;
+  try
+    if assigned(PMain) then
+    begin
+      FreeMem(PMain);
+      PMain:=nil;
+      FWaitEmptyItems.SetEvent;
+      FWaitItemsEvent.ResetEvent;
+    end;
+  finally
+    FLock.Leave;
+  end;
+end;
+
 function TThreadItem.Count: Integer;
 begin
-  Lock;
+  FLock.Enter;
   try
     if assigned(PMain) then
       result:=1
     else
       result:=0;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 
@@ -41,20 +58,20 @@ end;
 
 function TThreadItem.Pop: Pointer;
 begin
-  Lock;
+  FLock.Enter;
   try
     result:=PMain;
     PMain:=nil;
     FWaitEmptyItems.SetEvent;
     FWaitItemsEvent.ResetEvent;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 
 procedure TThreadItem.Push(AItem: Pointer);
 begin
-  Lock;
+  FLock.Enter;
   try
     if assigned(PMain) then
       Freemem(PMain);
@@ -62,7 +79,7 @@ begin
     FWaitEmptyItems.ResetEvent;
     FWaitItemsEvent.SetEvent;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 
