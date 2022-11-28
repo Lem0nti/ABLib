@@ -51,13 +51,9 @@ begin
   inherited Create(nil,nil,AName);
   FInputQueue:=TThreadItem.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
   FDrawer:=TDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
-//  FWidth:=1920;
-//  FHeight:=1080;
   SkipThru:=0;
   FLastPicture:=nil;
   Active:=true;
-  //new(FLastPicture);
-  //FLastPicture.Time:=0;
   GetMem(FLastPicture,3000*2048*3);
   FPaused:=false;
   GetMem(OldData,3000*2048*3);

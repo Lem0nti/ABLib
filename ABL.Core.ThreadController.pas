@@ -194,8 +194,16 @@ begin
 end;
 
 function TThreadController.ItemByName(AName: string): TThreadItem;
+var
+  Item: TBaseQueue;
 begin
-
+  for Item in QueueList do
+    if (Item.Name=AName)and(Item.ClassName='TThreadItem') then
+    begin
+      result:=TThreadItem(Item);
+      exit;
+    end;
+  result:=TThreadItem.Create(AName);
 end;
 
 function TThreadController.QueueByName(AName: string): TBaseQueue;
@@ -203,13 +211,12 @@ var
   Queue: TBaseQueue;
 begin
   for Queue in QueueList do
-    if Queue.Name=AName then
+    if (Queue.Name=AName)and(Queue.ClassName='TThreadQueue') then
     begin
       result:=Queue;
       exit;
     end;
-  Queue:=TThreadQueue.Create(AName);
-  result:=Queue;
+  result:=TThreadQueue.Create(AName);
 end;
 
 procedure TThreadController.SetLogMem(const Value: Cardinal);
