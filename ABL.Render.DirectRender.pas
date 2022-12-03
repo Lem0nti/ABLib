@@ -5,7 +5,7 @@ interface
 uses
   ABL.Core.DirectThread, ABL.Render.Drawer, ABL.VS.VSTypes, SysUtils,
   SyncObjs, ABL.Core.ThreadItem,
-  DateUtils, ABL.Core.Debug, ABL.Core.CoreUtils;
+  DateUtils;
 
 type
 
@@ -110,16 +110,6 @@ begin
   end;
 end;
 
-//function TDirectRender.GetHeight: integer;
-//begin
-//  FLock.Enter;
-//  try
-//    result:=FHeight;
-//  finally
-//    FLock.Leave;
-//  end;
-//end;
-
 function TDirectRender.GetOnDraw: TDrawNotify;
 begin
   result:=FDrawer.OnDraw;
@@ -134,16 +124,6 @@ begin
     FLock.Leave;
   end;
 end;
-
-//function TDirectRender.GetWidth: integer;
-//begin
-//  FLock.Enter;
-//  try
-//    result:=FWidth;
-//  finally
-//    FLock.Leave;
-//  end;
-//end;
 
 function TDirectRender.LastPicture(Original: boolean = false): PImageDataHeader;
 var
@@ -187,20 +167,6 @@ begin
   end;
 end;
 
-//procedure TDirectRender.SetHeight(const Value: integer);
-//begin
-//  FLock.Enter;
-//  try
-//    if FHeight<>Value then
-//    begin
-//      FHeight:=Value;
-//      UpdateSizes;
-//    end;
-//  finally
-//    FLock.Leave;
-//  end;
-//end;
-
 procedure TDirectRender.SetOnDraw(const Value: TDrawNotify);
 begin
   FDrawer.OnDraw:=Value;
@@ -215,45 +181,6 @@ begin
     FLock.Leave;
   end;
 end;
-
-//procedure TDirectRender.SetSize(AWidth, AHeight: integer);
-//begin
-//  FLock.Enter;
-//  try
-//    if (FWidth<>AWidth)or(FHeight<>AHeight) then
-//    begin
-//      FHeight:=AHeight;
-//      FWidth:=AWidth;
-//      UpdateSizes;
-//    end;
-//  finally
-//    FLock.Leave;
-//  end;
-//end;
-
-//procedure TDirectRender.SetWidth(const Value: integer);
-//begin
-//  FLock.Enter;
-//  try
-//    if FWidth<>Value then
-//    begin
-//      FWidth:=Value;
-//      UpdateSizes;
-//    end;
-//  finally
-//    FLock.Leave;
-//  end;
-//end;
-
-{$IFDEF FPC}
-procedure TDirectRender.ClearData(AData: Pointer);
-var
-  DecodedFrame: PDecodedFrame;
-begin
-  DecodedFrame:=PDecodedFrame(AData);
-  Dispose(DecodedFrame);
-end;
-{$ENDIF}
 
 procedure TDirectRender.SkipSecond;
 begin
