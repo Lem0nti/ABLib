@@ -10,15 +10,37 @@ type
   private
     FDropGlut: boolean;
     FrameList: array of Pointer;
+    function GetDropGlut: boolean;
+    procedure SetDropGlut(const Value: boolean);
   protected
     procedure DoExecute; override;
+    procedure DoReceive(var AInputData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
+    procedure Clear;
+    property DropGlut: boolean read GetDropGlut write SetDropGlut;
   end;
 
 implementation
 
 { TGallery }
+
+procedure TGallery.Clear;
+var
+  rData: Pointer;
+begin
+  FLock.Enter;
+  try
+    while Length(FrameList)>0 do
+    begin
+      rData=FrameList[High(FrameList)];
+      FreeMem(rData);
+      Delete(FrameList,High(FrameList),1);
+    end;
+  finally
+    FLock.Leave;
+  end;
+end;
 
 constructor TGallery.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
 begin
@@ -86,6 +108,43 @@ begin
         FreeMem(rData);
         Delete(FrameList,High(FrameList),1);
       end;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TGallery.DoReceive(var AInputData: Pointer);
+var
+  ImageDataHeader: PImageDataHeader;
+begin
+  if assigned(AInputData) then
+  begin
+    ImageDataHeader:=AInputData;
+    if (ImageDataHeader.TimedDataHeader.DataHeader.Magic=16961)and(ImageDataHeader.TimedDataHeader.DataHeader.Version=0)and(ImageDataHeader.ImageType in [itBGR,itGray]) then
+    begin
+      FLock.Enter;
+      FrameList:=[AInputData]+FrameList;
+      FLock.Leave;
+      AInputData:=nil;
+    end;
+  end;
+end;
+
+function TGallery.GetDropGlut: boolean;
+begin
+  FLock.Enter;
+  try
+    result:=FDropGlut;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TGallery.SetDropGlut(const Value: boolean);
+begin
+  FLock.Enter;
+  try
+    FDropGlut:=Value;
   finally
     FLock.Leave;
   end;
