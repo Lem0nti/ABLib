@@ -72,9 +72,7 @@ procedure TDirectRender.DoExecute(var AInputData: Pointer;
 var
   rData: PImageDataHeader;
   DrawResult: integer;
-  tmpStr: string;
 begin
-  DrawResult:=-2;
   rData:=AInputData;
   if (SkipThru<now) and assigned(FDrawer) then
   begin

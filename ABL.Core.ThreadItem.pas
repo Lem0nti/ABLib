@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.BaseQueue;
+  ABL.Core.BaseQueue, SyncObjs;
 
 type
   TThreadItem=class(TBaseQueue)

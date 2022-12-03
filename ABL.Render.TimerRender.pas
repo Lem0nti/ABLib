@@ -11,9 +11,7 @@ type
 
   TTimerRender=class(TTimerThread)
   private
-    FDrawer: TDrawer;
     FHandle: THandle;
-    FPicture: Pointer;
     function GetHandle: THandle;
     procedure SetHandle(const Value: THandle);
     function GetHeight: Word;
@@ -23,8 +21,9 @@ type
     function GetOnDraw: TDrawNotify;
     procedure SetOnDraw(const Value: TDrawNotify);
   protected
+    FDrawer: TDrawer;
+    FPicture: Pointer;
     procedure DoExecute; override;
-    //procedure DoReceive(var AInputData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     destructor Destroy; override;
@@ -64,11 +63,8 @@ procedure TTimerRender.DoExecute;
 begin
   FLock.Enter;
   try
-    if not Terminated then
-    begin
-      if FDrawer.Draw(FPicture)<0 then
-        FTerminated:=true;
-    end;
+    if (not Terminated) and (FDrawer.Draw(FPicture)<0) then
+      FTerminated:=true;
   finally
     FLock.Leave;
   end;
