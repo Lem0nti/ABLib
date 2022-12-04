@@ -6,7 +6,7 @@ uses
   ABL.IO.IOTypes;
 
 type
-  TABLImageType = (itBGR, itGray, itBit);
+  TABLImageType = (itBGR, itGray, itBit, itBGRIntegral, itGrayIntegral, itBitIntegral);
 
   PImageDataHeader=^TImageDataHeader;
   TImageDataHeader=record
@@ -18,11 +18,6 @@ type
     Reserved0: Word;
     Reserved1: integer;
     function Data: Pointer;
-  end;
-
-  TImageData=record
-    ImageDataHeader: TImageDataHeader;
-    Data: Pointer;
   end;
 
 implementation
