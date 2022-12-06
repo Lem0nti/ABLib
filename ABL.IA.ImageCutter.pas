@@ -50,6 +50,7 @@ var
   AbsRect, ACutRect: TRect;
   y,q,hl,tmpDataSize: integer;
   tmpOutputQueue: TBaseQueue;
+  BytesPerPixel: byte;
 begin
   DecodedFrame:=AInputData;
   if DecodedFrame.ImageType in [itBGR,itGray] then
@@ -78,23 +79,19 @@ begin
         if assigned(tmpOutputQueue) then
         begin
           if DecodedFrame.ImageType=itBGR then
-            tmpDataSize:=SizeOf(TImageDataHeader)+AbsRect.Width*AbsRect.Height*3
+            BytesPerPixel:=3
           else
-            tmpDataSize:=SizeOf(TImageDataHeader)+AbsRect.Width*AbsRect.Height;
+            BytesPerPixel:=1;
+          tmpDataSize:=SizeOf(TImageDataHeader)+AbsRect.Width*AbsRect.Height*BytesPerPixel;
           GetMem(AResultData,tmpDataSize);
           Move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
           OutputFrame:=AResultData;
           OutputFrame.Width:=AbsRect.Width;
           OutputFrame.Height:=AbsRect.Height;
           OutputFrame.TimedDataHeader.DataHeader.Size:=tmpDataSize;
-          if DecodedFrame.ImageType=itBGR then
-            for y := AbsRect.Top to AbsRect.Bottom do
-              Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
-                  PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3)
-          else
-            for y := AbsRect.Top to AbsRect.Bottom do
-              Move(PByte(NativeUInt(DecodedFrame.Data)+y*DecodedFrame.Width+AbsRect.Left)^,
-                  PByte(NativeUInt(OutputFrame.Data)+(y-AbsRect.Top)*AbsRect.Width)^,AbsRect.Width);
+          for y := AbsRect.Top to AbsRect.Bottom do
+            Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*BytesPerPixel)^,
+                PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*BytesPerPixel)^,AbsRect.Width*BytesPerPixel);
           tmpOutputQueue.Push(OutputFrame);
         end;
         inc(q);

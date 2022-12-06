@@ -39,9 +39,11 @@ var
   wh,hh: Extended;
   OffsetTo,OffsetFrom,x,y: integer;
   sz: Cardinal;
+  BytesPerPixel: byte;
 begin
   DecodedFrame:=AInputData;
-  try
+  if DecodedFrame.ImageType in [itBGR,itGray] then
+  begin
     FLock.Enter;
     tmpWidth:=FWidth;
     tmpHeight:=FHeight;
@@ -49,9 +51,13 @@ begin
     wh:=DecodedFrame.Width/tmpWidth;
     hh:=DecodedFrame.Height/tmpHeight;
     OffsetTo:=0;
+    if DecodedFrame.ImageType=itBGR then
+      BytesPerPixel:=3
+    else
+      BytesPerPixel:=1;
     if (DecodedFrame.Width<tmpWidth) or (DecodedFrame.Height<tmpHeight) then //надо ли увеличивать картинку
     begin
-      sz:=tmpWidth*tmpHeight*3+SizeOf(TImageDataHeader);
+      sz:=tmpWidth*tmpHeight*BytesPerPixel+SizeOf(TImageDataHeader);
       GetMem(AResultData,sz);
       move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
       OutputFrame:=AResultData;
@@ -61,9 +67,9 @@ begin
       for y:=0 to tmpHeight-1 do
         for x:=0 to tmpWidth-1 do
         begin
-          OffsetFrom:=(round(y*hh)*DecodedFrame.Width+round(x*wh))*3;
-          Move(PByte(NativeUInt(DecodedFrame.Data)+OffsetFrom)^,PByte(NativeUInt(OutputFrame.Data)+OffsetTo)^,3);
-          OffsetTo:=OffsetTo+3;
+          OffsetFrom:=(round(y*hh)*DecodedFrame.Width+round(x*wh))*BytesPerPixel;
+          Move(PByte(NativeUInt(DecodedFrame.Data)+OffsetFrom)^,PByte(NativeUInt(OutputFrame.Data)+OffsetTo)^,BytesPerPixel);
+          OffsetTo:=OffsetTo+BytesPerPixel;
         end;
         AResultData:=OutputFrame;
     end
@@ -74,9 +80,9 @@ begin
         for y:=0 to tmpHeight-1 do
           for x:=0 to tmpWidth-1 do
           begin
-            OffsetFrom:=(round(y*hh)*DecodedFrame.Width+round(x*wh))*3;
-            Move(PByte(NativeUInt(DecodedFrame.Data)+OffsetFrom)^,PByte(NativeUInt(DecodedFrame.Data)+OffsetTo)^,3);
-            OffsetTo:=OffsetTo+3;
+            OffsetFrom:=(round(y*hh)*DecodedFrame.Width+round(x*wh))*BytesPerPixel;
+            Move(PByte(NativeUInt(DecodedFrame.Data)+OffsetFrom)^,PByte(NativeUInt(DecodedFrame.Data)+OffsetTo)^,BytesPerPixel);
+            OffsetTo:=OffsetTo+BytesPerPixel;
           end;
         DecodedFrame.Width:=tmpWidth;
         DecodedFrame.Height:=tmpHeight;
@@ -84,9 +90,6 @@ begin
       AResultData:=AInputData;
       AInputData:=nil;
     end;
-  finally
-    if assigned(AInputData) then
-      FreeMem(DecodedFrame.Data);
   end;
 end;
 
