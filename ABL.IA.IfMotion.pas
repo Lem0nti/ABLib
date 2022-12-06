@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, SyncObjs, Windows, ABL.Core.BaseQueue;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, SyncObjs, Windows, ABL.Core.BaseQueue, SysUtils;
 
 type
   TIfMotion=class(TDirectThread)
@@ -44,6 +44,7 @@ procedure TIfMotion.DoExecute(var AInputData, AResultData: Pointer);
 var
   Offset,Can,x,y: integer;
   RGBTriple: PRGBTriple;
+  ByteArray: PByteArray;
   DecodedFrame: PImageDataHeader;
   rcWidth,rcHeight: Real;
   tmpRows,tmpCols: word;
@@ -54,17 +55,28 @@ var
   begin
     Offset:=0;
     SetLength(Ethalon,FRows*FCols);
-    for ay := 0 to FRows-1 do
-      for ax := 0 to FCols-1 do
-      begin
-        RGBTriple:=PRGBTriple(NativeUInt(DecodedFrame.Data)+(Round(ay*rcHeight)*DecodedFrame.Width+Round(ax*rcWidth))*3);
-        Ethalon[Offset]:=RGBTriple.rgbtGreen;
-        inc(Offset);
-      end;
+    if DecodedFrame.ImageType=itBGR then
+      for ay := 0 to FRows-1 do
+        for ax := 0 to FCols-1 do
+        begin
+          RGBTriple:=PRGBTriple(NativeUInt(DecodedFrame.Data)+(Round(ay*rcHeight)*DecodedFrame.Width+Round(ax*rcWidth))*3);
+          Ethalon[Offset]:=RGBTriple.rgbtGreen;
+          inc(Offset);
+        end
+    else
+      for ay := 0 to FRows-1 do
+        for ax := 0 to FCols-1 do
+        begin
+          ByteArray:=PByteArray(NativeUInt(DecodedFrame.Data)+Round(ay*rcHeight)*DecodedFrame.Width+Round(ax*rcWidth));
+          Ethalon[Offset]:=ByteArray[0];
+          inc(Offset);
+        end
   end;
 
 begin
   DecodedFrame:=AInputData;
+  if DecodedFrame.ImageType in [itBGR,itGray] then
+  begin
     FLock.Enter;
     tmpRows:=FRows;
     tmpCols:=FCols;
@@ -78,22 +90,40 @@ begin
       //движение
       Can:=0;
       Offset:=0;
-      for y := 0 to tmpRows-1 do
-      begin
-        for x := 0 to tmpCols-1 do
+      if DecodedFrame.ImageType=itBGR then
+        for y := 0 to tmpRows-1 do
         begin
-          RGBTriple:=PRGBTriple(NativeUInt(DecodedFrame.Data)+(Round(y*rcHeight)*DecodedFrame.Width+Round(x*rcWidth))*3);
-          if abs(Ethalon[Offset]-RGBTriple.rgbtGreen)>Sensivity then
+          for x := 0 to tmpCols-1 do
           begin
-            inc(Can);
-            if Can>1 then
-              break;
+            RGBTriple:=PRGBTriple(NativeUInt(DecodedFrame.Data)+(Round(y*rcHeight)*DecodedFrame.Width+Round(x*rcWidth))*3);
+            if abs(Ethalon[Offset]-RGBTriple.rgbtGreen)>Sensivity then
+            begin
+              inc(Can);
+              if Can>1 then
+                break;
+            end;
+            inc(Offset);
           end;
-          inc(Offset);
+          if Can>1 then
+            break;
+        end
+      else
+        for y := 0 to tmpRows-1 do
+        begin
+          for x := 0 to tmpCols-1 do
+          begin
+            ByteArray:=PByteArray(NativeUInt(DecodedFrame.Data)+Round(y*rcHeight)*DecodedFrame.Width+Round(x*rcWidth));
+            if abs(Ethalon[Offset]-ByteArray[0])>Sensivity then
+            begin
+              inc(Can);
+              if Can>1 then
+                break;
+            end;
+            inc(Offset);
+          end;
+          if Can>1 then
+            break;
         end;
-        if Can>1 then
-          break;
-      end;
       if Can>1 then
       begin
         ApplyAsEthalon;
@@ -104,6 +134,7 @@ begin
         end;
       end;
     end;
+  end;
 end;
 
 function TIfMotion.GetCols: word;
