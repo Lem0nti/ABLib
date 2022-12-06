@@ -3,7 +3,7 @@ unit ABL.IA.LocalBinarization;
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, ABL.Core.BaseQueue, Math, ABL.IA.IATypes, SyncObjs;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, ABL.Core.BaseQueue, Math, ABL.IA.IATypes, SyncObjs, SysUtils;
 
 type
   TLocalBinarization=class(TDirectThread)
@@ -49,28 +49,45 @@ var
   DecodedFrame: PImageDataHeader;
   x,y,xFrom,xTo,yFrom,yTo: integer;
   RGBArrayFrom: PRGBArray;
+  ByteArrayFrom: PByteArray;
   Neighbor,WholeSquare,PixelOffset,CurrentByte: integer;
-  tmpRadius: byte;
+  tmpRadius,bInc,BytesPerPixel: byte;
   tmpOffset: ShortInt;
   DecValue: Extended;
   CurrentBit: SmallInt;
   BW: PByte;
 begin
   DecodedFrame:=AInputData;
-  if DecodedFrame^.ImageType=itBGR then
+  if DecodedFrame^.ImageType in [itBGR,itGray] then
   begin
     //интегральное
     SetLength(Integral,DecodedFrame.Width,DecodedFrame.Height);
-    RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader));
-    //сначала все нулевые, так быстрее
-    Integral[0,0]:=RGBArrayFrom[0].rgbtGreen;
-    for y := 1 to DecodedFrame.Height-1 do
-      Integral[0,y]:=Integral[0,y-1]+RGBArrayFrom[y*DecodedFrame.Width].rgbtGreen;
-    for x := 1 to DecodedFrame.Width-1 do
-      Integral[x,0]:=Integral[x-1,0]+RGBArrayFrom[x].rgbtGreen;
-    for y := 1 to DecodedFrame.Height-1 do
+    if DecodedFrame^.ImageType=itBGR then
+    begin
+      RGBArrayFrom:=DecodedFrame^.Data;
+      //сначала все нулевые, так быстрее
+      Integral[0,0]:=RGBArrayFrom[0].rgbtGreen;
+      for y := 1 to DecodedFrame.Height-1 do
+        Integral[0,y]:=Integral[0,y-1]+RGBArrayFrom[y*DecodedFrame.Width].rgbtGreen;
       for x := 1 to DecodedFrame.Width-1 do
-        Integral[x,y]:=RGBArrayFrom[y*DecodedFrame.Width+x].rgbtGreen+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
+        Integral[x,0]:=Integral[x-1,0]+RGBArrayFrom[x].rgbtGreen;
+      for y := 1 to DecodedFrame.Height-1 do
+        for x := 1 to DecodedFrame.Width-1 do
+          Integral[x,y]:=RGBArrayFrom[y*DecodedFrame.Width+x].rgbtGreen+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
+    end
+    else
+    begin
+      ByteArrayFrom:=DecodedFrame^.Data;
+      //сначала все нулевые, так быстрее
+      Integral[0,0]:=ByteArrayFrom[0];
+      for y := 1 to DecodedFrame.Height-1 do
+        Integral[0,y]:=Integral[0,y-1]+ByteArrayFrom[y*DecodedFrame.Width];
+      for x := 1 to DecodedFrame.Width-1 do
+        Integral[x,0]:=Integral[x-1,0]+ByteArrayFrom[x];
+      for y := 1 to DecodedFrame.Height-1 do
+        for x := 1 to DecodedFrame.Width-1 do
+          Integral[x,y]:=ByteArrayFrom[y*DecodedFrame.Width+x]+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
+    end;
     //бинаризация
     FLock.Enter;
     tmpRadius:=FRadius;
@@ -78,10 +95,21 @@ begin
     FLock.Leave;
     DecValue:=(1-tmpOffset/100);
     FillChar(FBuffer^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1,255);
+    ByteArrayFrom:=DecodedFrame^.Data;
+    if DecodedFrame^.ImageType=itBGR then
+    begin
+      bInc:=1;
+      BytesPerPixel:=3
+    end
+    else
+    begin
+      bInc:=0;
+      BytesPerPixel:=1;
+    end;
     //сначала все приграничные, так быстрее
     for y := 0 to tmpRadius-1 do
     begin
-      RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
+      //RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
       yTo:=y+tmpRadius;
       for x := 0 to DecodedFrame.Width-1 do
       begin
@@ -97,7 +125,7 @@ begin
           Neighbor:=Neighbor-Integral[xFrom-1,yTo];
         Neighbor:=Round(DecValue*Neighbor/((xTo-XFrom)*yTo));
         //больше-меньше?
-        if RGBArrayFrom[x].rgbtGreen<Neighbor then
+        if ByteArrayFrom[(y*DecodedFrame.Width+x)*BytesPerPixel+bInc]<Neighbor then
         begin
           PixelOffset:=y*DecodedFrame.Width+x;
           CurrentByte:=PixelOffset div 8;
@@ -113,7 +141,7 @@ begin
     begin
       if Terminated then
         exit;
-      RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
+      //RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
       yFrom:=y-tmpRadius;
       yTo:=y+tmpRadius;
       if yTo>DecodedFrame.Height-1 then
@@ -134,7 +162,7 @@ begin
           Neighbor:=Neighbor+Integral[xFrom-1,yFrom-1];
         Neighbor:=Round(DecValue*Neighbor);
         //больше-меньше?
-        if RGBArrayFrom[x].rgbtGreen<Neighbor then
+        if ByteArrayFrom[(y*DecodedFrame.Width+x)*BytesPerPixel+bInc]<Neighbor then
         begin
           PixelOffset:=y*DecodedFrame.Width+x;
           CurrentByte:=PixelOffset div 8;
@@ -148,7 +176,7 @@ begin
     if assigned(FOutputQueue) then
     begin
       DecodedFrame.TimedDataHeader.DataHeader.Size:=(DecodedFrame.Width*DecodedFrame.Height div 8)+1+SizeOf(TImageDataHeader);
-      Move(FBuffer^,Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader))^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
+      Move(FBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
       AResultData:=AInputData;
       AInputData:=nil;
     end;
