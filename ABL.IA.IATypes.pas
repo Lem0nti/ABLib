@@ -2,10 +2,16 @@ unit ABL.IA.IATypes;
 
 interface
 
-//uses
-//  Windows;
+uses
+  Types;
 
 type
+  //PArea = ^TArea;
+  TArea = record
+    Rect: TRect;
+    Cnt: Cardinal;
+  end;
+
   TRGBTriple = record
     rgbtBlue: Byte;
     rgbtGreen: Byte;

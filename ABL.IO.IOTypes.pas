@@ -11,11 +11,7 @@ type
     DataHeader: TDataHeader;
     Time: int64;
     Reserved: Int64;
-  end;
-
-  TTimedData=record
-    TimedDataHeader: TTimedDataHeader;
-    Data: Pointer;
+    function Data: Pointer;
   end;
 
 const
@@ -26,5 +22,12 @@ const
   {$ENDIF}
 
 implementation
+
+{ TTimedDataHeader }
+
+function TTimedDataHeader.Data: Pointer;
+begin
+  result:=Pointer(NativeUInt(@Self)+SizeOf(TTimedDataHeader));
+end;
 
 end.
