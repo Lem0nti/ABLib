@@ -40,9 +40,6 @@ type
     NTime,FLastFrameTime: int64;
     function GetLastFrameTime: int64;
   protected
-    {$IFDEF FPC}
-    procedure ClearData(AData: Pointer); override;
-    {$ENDIF}
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     SPSPPSFrame_7_8: TBytes;
@@ -70,7 +67,7 @@ end;
 procedure TRTSPParser.DoExecute(var AInputData: Pointer;
   var AResultData: Pointer);
 var
-  ReadedData,ResultData: PTimedDataHeader;
+  ReadedData: PTimedDataHeader;
   TimedDataHeader: TTimedDataHeader;
   DataPassed,OldDataPassed,EHLOffset: Cardinal;
   RTSPHeader: TRTSPHeader;
@@ -80,16 +77,13 @@ var
   q: integer;
   AStringForLog: string;
   tmpLTimeStamp: TTimeStamp;
+  tmpResultData: Pointer;
 begin
   DataPassed:=0;
   try
     ReadedData:=PTimedDataHeader(AInputData);
-    //try
-      SetLength(InputBuffer,length(InputBuffer)+ReadedData^.DataHeader.Size);
-      Move(PByte(NativeUInt(AInputData)+SizeOf(TTimedDataHeader))^,InputBuffer[length(InputBuffer)-ReadedData^.DataHeader.Size],ReadedData^.DataHeader.Size);
-//    finally
-//      FreeMem(ReadedData^.Data);
-//    end;
+    SetLength(InputBuffer,length(InputBuffer)+ReadedData^.DataHeader.Size);
+    Move(ReadedData^.Data^,InputBuffer[length(InputBuffer)-ReadedData^.DataHeader.Size],ReadedData^.DataHeader.Size);
     while DataPassed<length(InputBuffer) do
     begin
       if Terminated then
@@ -184,20 +178,16 @@ begin
                       if assigned(FOutputQueue) then
                       begin
                         Move(AInputData^,TimedDataHeader,SizeOf(TTimedDataHeader));
-                        TimedDataHeader.DataHeader.Size:=length(CurFrame);
-                        //GetMem(AResultData,);
-//                        New(ResultData);
-//                        ResultData^.Size:=length(CurFrame);
-//                        ResultData^.Reserved:=0;
+                        TimedDataHeader.DataHeader.Size:=SizeOf(TTimedDataHeader)+length(CurFrame);
                         //если фрейм 5, и без 7 и 8, то послать их
                         if CurFrame[3]=101 then  //$65
                         begin
                           if length(SPSPPSFrame_7_8)>0 then
                           begin
                             TimedDataHeader.DataHeader.Size:=TimedDataHeader.DataHeader.Size+length(SPSPPSFrame_7_8);
-                            GetMem(AResultData,TimedDataHeader.DataHeader.Size);
-                            Move(SPSPPSFrame_7_8[0],PByte(NativeUInt(AResultData)+SizeOf(TTimedDataHeader))^,length(SPSPPSFrame_7_8));
-                            Move(CurFrame[0],PByte(NativeUInt(AResultData)+NativeUInt(length(SPSPPSFrame_7_8))+SizeOf(TTimedDataHeader))^,length(CurFrame));
+                            GetMem(tmpResultData,TimedDataHeader.DataHeader.Size);
+                            Move(SPSPPSFrame_7_8[0],PByte(NativeUInt(tmpResultData)+SizeOf(TTimedDataHeader))^,length(SPSPPSFrame_7_8));
+                            Move(CurFrame[0],PByte(NativeUInt(tmpResultData)+NativeUInt(length(SPSPPSFrame_7_8))+SizeOf(TTimedDataHeader))^,length(CurFrame));
                           end
                           else
                           begin
@@ -209,20 +199,17 @@ begin
                         else
                         begin
                           //скопировать
-                          GetMem(AResultData,TimedDataHeader.DataHeader.Size);
-                          Move(CurFrame[0],PByte(NativeUInt(AResultData)+SizeOf(TTimedDataHeader))^,length(CurFrame));
+                          GetMem(tmpResultData,TimedDataHeader.DataHeader.Size);
+                          Move(CurFrame[0],PByte(NativeUInt(tmpResultData)+SizeOf(TTimedDataHeader))^,length(CurFrame));
                         end;
                         if Terminated then
                           exit;
                         TimedDataHeader.Time:=NTime;
-                        Move(TimedDataHeader,AResultData^,SizeOf(TTimedDataHeader));
-                        Lock;
+                        Move(TimedDataHeader,tmpResultData^,SizeOf(TTimedDataHeader));
+                        FLock.Enter;
                         FLastFrameTime:=NTime;
-                        Unlock;
-                        if assigned(FOutputQueue) then
-                          FOutputQueue.Push(ResultData)  // так а не через аутпутдата, потому что на один пакет может быть несколько кадров
-                        else //нет ничего
-                          SubThread.Terminate;
+                        FLock.Leave;
+                        FOutputQueue.Push(tmpResultData);  // так а не через аутпутдата, потому что на один пакет может быть несколько кадров
                       end;
                       SetLength(CurFrame,0);
                       NTime:=0;

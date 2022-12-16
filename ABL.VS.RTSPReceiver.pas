@@ -62,7 +62,7 @@ type
     procedure SetThisLastError(ALastError: string);
   public
     Link: TURI;
-    constructor Create(AOutputQueue: TThreadQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
+    constructor Create(AOutputQueue: TBaseQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
     destructor Destroy; override;
     procedure ChildCB(AChild: TBaseObject); override;
     function LastError: string;
@@ -255,7 +255,7 @@ begin
         {$IFDEF UNIX}'socket error '+IntToStr(FSocket){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF});
 end;
 
-constructor TRTSPReceiver.Create(AOutputQueue: TThreadQueue; AName, AConnectionString: string);
+constructor TRTSPReceiver.Create(AOutputQueue: TBaseQueue; AName, AConnectionString: string);
 begin
   inherited Create(AName);
   ThreadQueue:=TThreadQueue.Create(ClassName+'_'+AName+'_Reader2Parser_'+IntToStr(FID));
