@@ -23,9 +23,6 @@ type
     FCodec: TAVCodecID;
     LastFrameTime: int64;
   protected
-    {$IFDEF FPC}
-    procedure ClearData(AData: Pointer); override;
-    {$ENDIF}
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
     procedure InitDecoder;
     procedure CloseDecoder;
@@ -62,16 +59,6 @@ begin
   Start;
 end;
 
-{$IFDEF FPC}
-procedure TVideoDecoder.ClearData(AData: Pointer);
-var
-  DataFrame: PDataFrame;
-begin
-  DataFrame:=PDataFrame(AData);
-  Dispose(DataFrame);
-end;
-{$ENDIF}
-
 destructor TVideoDecoder.Destroy;
 begin
   Stop;
@@ -85,7 +72,6 @@ var
   CFrame: PTimedDataHeader;
   got_picture,DSize: integer;
   DecodedFrame: PImageDataHeader;
-  ByteArray: PByteArray;
 begin
   try
     CFrame:=PTimedDataHeader(AInputData);
@@ -97,7 +83,7 @@ begin
     if Terminated then
       exit;
     pkt^.size:=CFrame^.DataHeader.Size;
-    pkt^.data:=PByte(NativeUInt(AInputData)+SizeOf(TTimedDataHeader));
+    pkt^.data:=CFrame^.Data;
     FLock.Enter;
     try
       if assigned(frame) then
@@ -138,11 +124,9 @@ begin
               DecodedFrame^.Top:=0;
               DecodedFrame^.ImageType:=itBGR;
               DecodedFrame^.FlipMarker:=true;
-              ByteArray:=AResultData;
-              Move(m_OutPicture^.data[0]^,ByteArray[SizeOf(TImageDataHeader)],DSize);
+              Move(m_OutPicture^.data[0]^,DecodedFrame^.Data^,DSize);
               if Terminated then
                 exit;
-              AResultData:=DecodedFrame;
             end;
           end;
         end
@@ -186,7 +170,6 @@ var
   DecodedFrame: Pointer;
   ImageDataHeader: PImageDataHeader;
   DSize: integer;
-  ByteArray: PByteArray;
 begin
   if assigned(m_OutPicture) then
   begin
@@ -204,8 +187,7 @@ begin
     ImageDataHeader^.Top:=0;
     ImageDataHeader^.ImageType:=itBGR;
     ImageDataHeader^.FlipMarker:=true;
-    ByteArray:=DecodedFrame;
-    Move(m_OutPicture^.data[0]^,ByteArray[SizeOf(TImageDataHeader)],DSize);
+    Move(m_OutPicture^.data[0]^,ImageDataHeader^.Data^,DSize);
     FOutputQueue.Push(DecodedFrame);
   end;
 end;

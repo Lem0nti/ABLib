@@ -46,7 +46,7 @@ begin
   if bGo.Caption='Старт' then
   begin
     if not assigned(VideoDecoder) then
-      VideoDecoder:=TVideoDecoder.Create(ThreadController.QueueByName('Decoder'),ThreadController.QueueByName('BGR'),AV_CODEC_ID_H264,'Decoder');
+      VideoDecoder:=TVideoDecoder.Create(ThreadController.QueueByName('Decoder'),ThreadController.QueueByName('BGR'),AV_CODEC_ID_H264,'VideoDecoder');
     if not assigned(RTSPReceiver) then
       RTSPReceiver:=TRTSPReceiver.Create(VideoDecoder.InputQueue,'RTSPReceiver',eLink.Text);
     bGo.Caption:='Стоп';

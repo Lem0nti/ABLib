@@ -73,8 +73,9 @@ var
   RTSPHeader: TRTSPHeader;
   PayloadType,Byte_1,Byte_0,x,CSRCCount,NRI,Byte_PayLoad,PacketType,FrameType: byte;
   EndMarker,AssertMarker: boolean;
-  EHL,Payload,Sequence,DataSize: word;
-  q: integer;
+  EHL,Payload,DataSize: word;
+  Sequence: word;
+  q,tmpDataSize: integer;
   AStringForLog: string;
   tmpLTimeStamp: TTimeStamp;
   tmpResultData: Pointer;
@@ -82,8 +83,9 @@ begin
   DataPassed:=0;
   try
     ReadedData:=PTimedDataHeader(AInputData);
-    SetLength(InputBuffer,length(InputBuffer)+ReadedData^.DataHeader.Size);
-    Move(ReadedData^.Data^,InputBuffer[length(InputBuffer)-ReadedData^.DataHeader.Size],ReadedData^.DataHeader.Size);
+    tmpDataSize:=ReadedData^.DataHeader.Size-SizeOf(TTimedDataHeader);
+    SetLength(InputBuffer,length(InputBuffer)+tmpDataSize);
+    Move(ReadedData^.Data^,InputBuffer[length(InputBuffer)-tmpDataSize],tmpDataSize);
     while DataPassed<length(InputBuffer) do
     begin
       if Terminated then
@@ -119,8 +121,8 @@ begin
             end
             else
               EHL:=0;
-            move(InputBuffer[DataPassed+2],Sequence,2);
-            Sequence:=htons(Sequence);
+//            move(InputBuffer[DataPassed+2],Sequence,2);
+//            Sequence:=htons(Sequence);
             //адрес равен 12+CSRCCount*4+x*4+x*EHL
             Payload:=12+(CSRCCount+x)*4+x*EHL;
             if DataPassed+Payload<length(InputBuffer) then
