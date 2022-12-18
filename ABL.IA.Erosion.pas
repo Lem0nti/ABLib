@@ -51,39 +51,39 @@ begin
     for y:=1 to ImageDataHeader.Height-2 do
       for x:=1 to ImageDataHeader.Width-2 do
       begin
-        Offset=y*ImageDataHeader.Width+x;
-        CurByte=Offset div 8;
-        CurBit=Offset mod 8;
+        Offset:=y*ImageDataHeader.Width+x;
+        CurByte:=Offset div 8;
+        CurBit:=Offset mod 8;
         //текущий пиксель чёрный?
         if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
         begin
           //если в окрестности есть хоть один белый, то зануляем
-          Offset=(y-1)*ImageDataHeader.Width+x;
-          CurByte=Offset div 8;
-          CurBit=Offset mod 8;
+          Offset:=(y-1)*ImageDataHeader.Width+x;
+          CurByte:=Offset div 8;
+          CurBit:=Offset mod 8;
           if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
           begin
-            Offset=y*ImageDataHeader.Width+x-1;
-            CurByte=Offset div 8;
-            CurBit=Offset mod 8;
+            Offset:=y*ImageDataHeader.Width+x-1;
+            CurByte:=Offset div 8;
+            CurBit:=Offset mod 8;
             if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
             begin
-              Offset=y*ImageDataHeader.Width+x+1;
-              CurByte=Offset div 8;
-              CurBit=Offset mod 8;
+              Offset:=y*ImageDataHeader.Width+x+1;
+              CurByte:=Offset div 8;
+              CurBit:=Offset mod 8;
               if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
               begin
-                Offset=(y+1)*ImageDataHeader.Width+x;
-                CurByte=Offset div 8;
-                CurBit=Offset mod 8;
+                Offset:=(y+1)*ImageDataHeader.Width+x;
+                CurByte:=Offset div 8;
+                CurBit:=Offset mod 8;
                 if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
                   Continue;
               end;
             end;
           end;
-          Offset=y*ImageDataHeader.Width+x;
-          CurByte=Offset div 8;
-          CurBit=Offset mod 8;
+          Offset:=y*ImageDataHeader.Width+x;
+          CurByte:=Offset div 8;
+          CurBit:=Offset mod 8;
           ByteTo[CurByte]:=ByteTo[CurByte] or (1 shl CurBit);
         end;
       end;

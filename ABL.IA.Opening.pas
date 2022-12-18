@@ -11,11 +11,13 @@ type
     Erosion: TErosion;
     Dilation: TDilation;
     ThreadQueue: TThreadQueue;
-  protected
-    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); reintroduce;
     destructor Destroy; override;
+    function InputQueue: TBaseQueue;
+    function OutputQueue: TBaseQueue;
+    procedure SetInputQueue(Queue: TBaseQueue);
+    procedure SetOutputQueue(Queue: TBaseQueue);
   end;
 
 implementation
@@ -42,5 +44,25 @@ begin
   inherited;
 end;
 
+
+function TOpening.InputQueue: TBaseQueue;
+begin
+  result:=Erosion.InputQueue;
+end;
+
+function TOpening.OutputQueue: TBaseQueue;
+begin
+  result:=Dilation.OutputQueue;
+end;
+
+procedure TOpening.SetInputQueue(Queue: TBaseQueue);
+begin
+  Erosion.SetInputQueue(Queue);
+end;
+
+procedure TOpening.SetOutputQueue(Queue: TBaseQueue);
+begin
+  Dilation.SetOutputQueue(Queue);
+end;
 
 end.

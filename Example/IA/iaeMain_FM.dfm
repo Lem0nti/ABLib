@@ -11,6 +11,7 @@ object MinFM: TMinFM
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  WindowState = wsMaximized
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnResize = FormResize
@@ -32,6 +33,11 @@ object MinFM: TMinFM
       Align = alTop
       Caption = 'pnlLeftTop'
       TabOrder = 0
+      OnMouseDown = pnlLeftTopMouseDown
+      OnMouseMove = pnlLeftTopMouseMove
+      OnMouseUp = pnlLeftTopMouseUp
+      ExplicitLeft = -3
+      ExplicitTop = 2
     end
     object pnlLeftBottom: TPanel
       Left = 1
@@ -41,8 +47,6 @@ object MinFM: TMinFM
       Align = alClient
       Caption = 'pnlLeftBottom'
       TabOrder = 1
-      ExplicitTop = 42
-      ExplicitHeight = 227
     end
   end
   object Panel2: TPanel
@@ -62,7 +66,7 @@ object MinFM: TMinFM
       Caption = 'pnlRightTop'
       TabOrder = 0
       ExplicitLeft = 5
-      ExplicitTop = 2
+      ExplicitTop = -5
     end
     object pnlRightBottom: TPanel
       Left = 1

@@ -51,19 +51,19 @@ begin
     for y:=1 to ImageDataHeader.Height-2 do
       for x:=1 to ImageDataHeader.Width-2 do
       begin
-        Offset=y*ImageDataHeader.Width+x;
-        CurByte=Offset div 8;
-        CurBit=Offset mod 8;
+        Offset:=y*ImageDataHeader.Width+x;
+        CurByte:=Offset div 8;
+        CurBit:=Offset mod 8;
         //текущий пиксель чёрный?
         if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
           //все вокруг зануляем
-          for ytmp:=y-1 to ytmp<y+1 do
-            for xtmp:=x-1 to xtmp<x+1 do
+          for ytmp:=y-1 to y+1 do
+            for xtmp:=x-1 to x+1 do
             begin
-              Offset=ytmp*ImageDataHeader.Width+xtmp;
-              CurByte=Offset div 8;
-              CurBit=Offset mod 8;
-              ByteTo[CurByte]:=ByteTo[CurByte] and (1 shl CurBit) xor $FFFFFFFF;
+              Offset:=ytmp*ImageDataHeader.Width+xtmp;
+              CurByte:=Offset div 8;
+              CurBit:=Offset mod 8;
+              ByteTo[CurByte]:=(ByteTo[CurByte] and not (1 shl CurBit));
             end;
       end;
     move(tmpBuffer^,ImageDataHeader.Data^,tmpDataSize);

@@ -142,7 +142,7 @@ end;
 
 function TBaseThread.InputQueue: TBaseQueue;
 begin
-  result:=FInputQueue
+  result:=FInputQueue;
 end;
 
 function TBaseThread.OutputQueue: TBaseQueue;

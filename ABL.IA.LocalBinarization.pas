@@ -109,7 +109,6 @@ begin
     //сначала все приграничные, так быстрее
     for y := 0 to tmpRadius-1 do
     begin
-      //RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
       yTo:=y+tmpRadius;
       for x := 0 to DecodedFrame.Width-1 do
       begin
@@ -141,7 +140,6 @@ begin
     begin
       if Terminated then
         exit;
-      //RGBArrayFrom:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader)+y*DecodedFrame.Width*3);
       yFrom:=y-tmpRadius;
       yTo:=y+tmpRadius;
       if yTo>DecodedFrame.Height-1 then
