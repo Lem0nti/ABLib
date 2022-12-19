@@ -1,4 +1,6 @@
-﻿unit ABL.VS.VSTypes;
+﻿unit ABL.VS.VSTypes;  
+
+{$mode objfpc}{$H+}{$modeswitch advancedrecords}
 
 interface
 

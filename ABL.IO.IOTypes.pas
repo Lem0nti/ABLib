@@ -1,4 +1,6 @@
-﻿unit ABL.IO.IOTypes;
+﻿unit ABL.IO.IOTypes;     
+
+{$mode objfpc}{$H+}{$modeswitch advancedrecords}
 
 interface
 

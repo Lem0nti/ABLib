@@ -5,7 +5,7 @@ unit iaeMain_FM;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ABL.IA.ImageConverter;
 
 type
 
@@ -28,7 +28,16 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
   private
-
+    BinConverter,OpenConverter,CloseConverter: TImageConverter;
+    Closing: TClosing;
+    DecodedMultiplier,BinaryMultiplier: TQueueMultiplier;
+    FFocusRect: TRect;
+    ImageCutter: TImageCutter;
+    LocalBinarization: TLocalBinarization;
+    Opening: TOpening;
+    RenderLeftTop,RenderRightTop,RenderLeftBottom,RenderRightBottom: TDirectRender;
+    RTSPReceiver: TRTSPReceiver;
+    VideoDecoder: TVideoDecoder;
   public
 
   end;
@@ -69,6 +78,52 @@ begin
     RenderLeftTop.Handle:=pnlLeftTop.Handle;
     DecodedMultiplier.AddReceiver(RenderLeftTop.InputQueue);
   end;
+  if not assigned(ImageCutter) then
+  begin
+    ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter'),'ImageCutter');
+    DecodedMultiplier.AddReceiver(ImageCutter.InputQueue);
+  end;
+  if not assigned(LocalBinarization) then
+  begin
+    LocalBinarization:=TLocalBinarization.Create(ThreadController.QueueByName('BinarizationInput'),ThreadController.QueueByName('BinarizationOutput'),'LocalBinarization');
+    ImageCutter.AddReceiver(LocalBinarization.InputQueue,Rect(3000,3000,4000,4000));
+  end;
+  if not assigned(BinaryMultiplier) then
+    BinaryMultiplier:=TQueueMultiplier.Create(LocalBinarization.OutputQueue,'BinaryMultiplier');
+  if not assigned(RenderRightTop) then
+  begin
+    RenderRightTop:=TDirectRender.Create('RenderRightTop');
+    RenderRightTop.Handle:=pnlRightTop.Handle;
+  end;
+  if not assigned(BinConverter) then
+  begin
+    BinConverter:=TImageConverter.Create(ThreadController.QueueByName('BinConverterInput'),RenderRightTop.InputQueue,'BinConverter');
+    BinaryMultiplier.AddReceiver(BinConverter.InputQueue);
+  end;
+  if not assigned(Opening) then
+  begin
+    Opening:=TOpening.Create(ThreadController.QueueByName('OpeningInput'),ThreadController.QueueByName('OpeningOutput'),'Opening');
+    BinaryMultiplier.AddReceiver(Opening.InputQueue);
+  end;
+  if not assigned(RenderLeftBottom) then
+  begin
+    RenderLeftBottom:=TDirectRender.Create('RenderLeftBottom');
+    RenderLeftBottom.Handle:=pnlLeftBottom.Handle;
+  end;
+  if not assigned(OpenConverter) then
+    OpenConverter:=TImageConverter.Create(Opening.OutputQueue,RenderLeftBottom.InputQueue,'OpenConverter');
+  if not assigned(Closing) then
+  begin
+    Closing:=TClosing.Create(ThreadController.QueueByName('ClosingInput'),ThreadController.QueueByName('ClosingOutput'),'Closing');
+    BinaryMultiplier.AddReceiver(Closing.InputQueue);
+  end;
+  if not assigned(RenderRightBottom) then
+  begin
+    RenderRightBottom:=TDirectRender.Create('RenderRightBottom');
+    RenderRightBottom.Handle:=pnlRightBottom.Handle;
+  end;
+  if not assigned(CloseConverter) then
+    CloseConverter:=TImageConverter.Create(Closing.OutputQueue,RenderRightBottom.InputQueue,'CloseConverter');
 end;
 
 procedure TMainFM.eLinkChange(Sender: TObject);
