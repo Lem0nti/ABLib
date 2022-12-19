@@ -1,4 +1,6 @@
-unit ABL.IA.IATypes;
+unit ABL.IA.IATypes;     
+
+{$mode objfpc}{$H+}{$modeswitch advancedrecords}
 
 interface
 
@@ -6,7 +8,6 @@ uses
   Types;
 
 type
-  //PArea = ^TArea;
   TArea = record
     Rect: TRect;
     Cnt: Cardinal;

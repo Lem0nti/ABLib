@@ -91,7 +91,7 @@ begin
         avcodec_decode_video2(VideoContext, frame, @got_picture, pkt);
         if got_picture=1 then
         begin
-          if CFrame.Reserved=0 then
+          if CFrame^.Reserved=0 then
           begin
             if (VideoContext^.width <> PrevWidth) and assigned(m_OutPicture) then
             begin
@@ -135,7 +135,7 @@ begin
           inc(BadDecodeCounter);
           if BadDecodeCounter>=192 then
           begin
-            SendErrorMsg('TVideoDecoder('+FName+').DoExecute 151, ошибочное декодирование: InSize='+IntToStr(CFrame.DataHeader.Size)+':'+IntToStr(VideoContext^.
+            SendErrorMsg('TVideoDecoder('+FName+').DoExecute 138, ошибочное декодирование: InSize='+IntToStr(CFrame^.DataHeader.Size)+':'+IntToStr(VideoContext^.
                 Width)+'x'+IntToStr(VideoContext^.Height));
             CloseDecoder;
             InitDecoder;

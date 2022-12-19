@@ -5,7 +5,9 @@ unit iaeMain_FM;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ABL.IA.ImageConverter;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ABL.IA.ImageConverter, IniFiles, Types,
+  ABL.IA.Closing, ABL.Core.QueueMultiplier, ABL.IA.ImageCutter, ABL.IA.LocalBinarization, ABL.VS.FFMPEG, Windows,
+  ABL.IA.Opening, ABL.Render.DirectRender, ABL.VS.RTSPReceiver, ABL.VS.VideoDecoder, ABL.Core.ThreadController;
 
 type
 
@@ -86,7 +88,7 @@ begin
   if not assigned(LocalBinarization) then
   begin
     LocalBinarization:=TLocalBinarization.Create(ThreadController.QueueByName('BinarizationInput'),ThreadController.QueueByName('BinarizationOutput'),'LocalBinarization');
-    ImageCutter.AddReceiver(LocalBinarization.InputQueue,Rect(3000,3000,4000,4000));
+    ImageCutter.AddReceiver(LocalBinarization.InputQueue,Types.Rect(3000,3000,4000,4000));
   end;
   if not assigned(BinaryMultiplier) then
     BinaryMultiplier:=TQueueMultiplier.Create(LocalBinarization.OutputQueue,'BinaryMultiplier');

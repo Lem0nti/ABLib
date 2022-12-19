@@ -89,29 +89,29 @@ begin
         begin
           while ppRect.Width mod 4 > 0 do
             ppRect.Width:=ppRect.Width+1;
-          if (ImageData.Width>ppRect.Width) or (ImageData.Height>ppRect.Height) then
+          if (ImageData^.Width>ppRect.Width) or (ImageData^.Height>ppRect.Height) then
           begin
-            wh:=ImageData.Width/ppRect.Width;
-            hh:=ImageData.Height/ppRect.Height;
+            wh:=ImageData^.Width/ppRect.Width;
+            hh:=ImageData^.Height/ppRect.Height;
             Offset:=0;
             for y := 0 to ppRect.Height-1 do
               for x := 0 to ppRect.Width-1 do
               begin
-                Move(PByte(NativeUInt(ImageData.Data)+(Round(y*hh)*ImageData.Width+Round(x*wh))*3)^,PByte(NativeUInt(ImageData.Data)+Offset*3)^,3);
+                Move(PByte(NativeUInt(ImageData^.Data)+(Round(y*hh)*ImageData^.Width+Round(x*wh))*3)^,PByte(NativeUInt(ImageData^.Data)+Offset*3)^,3);
                 inc(Offset);
               end;
-            ImageData.Width:=ppRect.Width;
-            ImageData.Height:=ppRect.Height;
+            ImageData^.Width:=ppRect.Width;
+            ImageData^.Height:=ppRect.Height;
           end;
-          bmpinfo.bmiHeader.biWidth:=ImageData.Width;
-          bmpinfo.bmiHeader.biSizeImage:=ImageData.Width*ImageData.Height*3;
-          if ImageData.FlipMarker then
-            bmpinfo.bmiHeader.biHeight:=-ImageData.Height
+          bmpinfo.bmiHeader.biWidth:=ImageData^.Width;
+          bmpinfo.bmiHeader.biSizeImage:=ImageData^.Width*ImageData^.Height*3;
+          if ImageData^.FlipMarker then
+            bmpinfo.bmiHeader.biHeight:=-ImageData^.Height
           else
-            bmpinfo.bmiHeader.biHeight:=ImageData.Height;
+            bmpinfo.bmiHeader.biHeight:=ImageData^.Height;
           drawDC:=GetDC(FHandle);
           try
-            StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ImageData.Width,ImageData.Height,ImageData.Data,bmpinfo,DIB_RGB_COLORS,SRCCOPY);
+            StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ImageData^.Width,ImageData^.Height,ImageData^.Data,bmpinfo,DIB_RGB_COLORS,SRCCOPY);
             SetBkMode(drawDC,TRANSPARENT);
             lRatio:=1080/ppRect.Width;
             // Динамический подбор размера шрифта к разрешению экрана
@@ -124,15 +124,15 @@ begin
             src.Bottom:=ppRect.Height;
             src.Right:=ppRect.Width-src.Left;
             if FCameraName<>'' then
-              DrawText(drawDC,FCameraName,Length(FCameraName),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_LEFT);
+              DrawText(drawDC,PChar(FCameraName),Length(FCameraName),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_LEFT);
             if FShowTime then
             begin
-              if (ImageData.TimedDataHeader.Time>2641367261872)or(ImageData.TimedDataHeader.Time<0) then
-                SendErrorMsg('TDrawer.Draw 131: invalid time - '+IntToStr(ImageData.TimedDataHeader.Time))
+              if (ImageData^.TimedDataHeader.Time>2641367261872)or(ImageData^.TimedDataHeader.Time<0) then
+                SendErrorMsg('TDrawer.Draw 131: invalid time - '+IntToStr(ImageData^.TimedDataHeader.Time))
               else
               begin
-                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ImageData.TimedDataHeader.Time));
-                DrawText(drawDC,OutText,Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
+                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ImageData^.TimedDataHeader.Time));
+                DrawText(drawDC,PChar(OutText),Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
               end;
             end;
             if FFocusRect.Left>0 then

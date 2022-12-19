@@ -39,7 +39,7 @@ var
   ByteArray: PByteArray;
 begin
   ImageDataHeader:=AInputData;
-  if ImageDataHeader.ImageType<itBGRIntegral then
+  if ImageDataHeader.ImageType<itGrayIntegral then
   begin
     sz:=ImageDataHeader.Width*ImageDataHeader.Height*SizeOf(Cardinal)+SizeOf(TImageDataHeader);
     GetMem(AResultData,sz);

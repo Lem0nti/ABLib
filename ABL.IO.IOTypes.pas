@@ -1,6 +1,8 @@
 ﻿unit ABL.IO.IOTypes;     
 
+{$IFDEF FPC}
 {$mode objfpc}{$H+}{$modeswitch advancedrecords}
+{$ENDIF}
 
 interface
 

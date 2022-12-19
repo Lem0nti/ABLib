@@ -242,11 +242,7 @@ begin
               exit;
           finally
             if assigned(Mess) then
-              {$IFDEF FPC}
-              FTimerThread.ClearData(Mess);
-              {$ELSE}
-              Dispose(Mess);
-              {$ENDIF}
+              FreeMem(Mess);
           end;
         end;
     except on e: Exception do

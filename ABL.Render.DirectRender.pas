@@ -78,15 +78,15 @@ begin
   begin
     if not FPaused then
     begin
-      OldData.Width:=rData.Width;
-      OldData.Height:=rData.Height;
-      OldData.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
-      Move(rData^,OldData^,rData.TimedDataHeader.DataHeader.Size);
+      OldData^.Width:=rData^.Width;
+      OldData^.Height:=rData^.Height;
+      OldData^.TimedDataHeader.Time:=rData^.TimedDataHeader.Time;
+      Move(rData^,OldData^,rData^.TimedDataHeader.DataHeader.Size);
       DrawResult:=FDrawer.Draw(rData);
-      Move(rData.Data^,FLastPicture.Data^,rData.Width*rData.Height*3);
-      FLastPicture.Width:=rData.Width;
-      FLastPicture.Height:=rData.Height;
-      FLastPicture.TimedDataHeader.Time:=rData.TimedDataHeader.Time;
+      Move(rData^.Data^,FLastPicture^.Data^,rData^.Width*rData^.Height*3);
+      FLastPicture^.Width:=rData^.Width;
+      FLastPicture^.Height:=rData^.Height;
+      FLastPicture^.TimedDataHeader.Time:=rData^.TimedDataHeader.Time;
       if DrawResult<0 then
         SkipSecond;
     end;
@@ -137,7 +137,7 @@ begin
       DecodedFrame:=FLastPicture;
     if assigned(DecodedFrame) then
     begin
-      sz:=DecodedFrame.TimedDataHeader.DataHeader.Size;
+      sz:=DecodedFrame^.TimedDataHeader.DataHeader.Size;
       if sz>0 then
       begin
         GetMem(result,sz);
@@ -187,7 +187,7 @@ end;
 
 procedure TDirectRender.UpdateScreen;
 begin
-  if assigned(FLastPicture) and (FLastPicture.TimedDataHeader.Time>0) then
+  if assigned(FLastPicture) and (FLastPicture^.TimedDataHeader.Time>0) then
     Drawer.Draw(FLastPicture);
 end;
 

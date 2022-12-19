@@ -42,31 +42,31 @@ var
   tmpDataSize: Cardinal;
 begin
   ImageDataHeader:=AInputData;
-  if ImageDataHeader.ImageType=itBit then
+  if ImageDataHeader^.ImageType=itBit then
   begin
-    tmpDataSize:=ImageDataHeader.Width*ImageDataHeader.Height div 8+1;
-    move(ImageDataHeader.Data^,tmpBuffer^,tmpDataSize);
-    ByteFrom:=ImageDataHeader.Data;
+    tmpDataSize:=ImageDataHeader^.Width*ImageDataHeader^.Height div 8+1;
+    move(ImageDataHeader^.Data^,tmpBuffer^,tmpDataSize);
+    ByteFrom:=ImageDataHeader^.Data;
     ByteTo:=tmpBuffer;
-    for y:=1 to ImageDataHeader.Height-2 do
-      for x:=1 to ImageDataHeader.Width-2 do
+    for y:=1 to ImageDataHeader^.Height-2 do
+      for x:=1 to ImageDataHeader^.Width-2 do
       begin
-        Offset:=y*ImageDataHeader.Width+x;
+        Offset:=y*ImageDataHeader^.Width+x;
         CurByte:=Offset div 8;
         CurBit:=Offset mod 8;
         //текущий пиксель чёрный?
-        if (ByteFrom[CurByte] shr CurBit) and 1 = 0 then
+        if (ByteFrom^[CurByte] shr CurBit) and 1 = 0 then
           //все вокруг зануляем
           for ytmp:=y-1 to y+1 do
             for xtmp:=x-1 to x+1 do
             begin
-              Offset:=ytmp*ImageDataHeader.Width+xtmp;
+              Offset:=ytmp*ImageDataHeader^.Width+xtmp;
               CurByte:=Offset div 8;
               CurBit:=Offset mod 8;
-              ByteTo[CurByte]:=(ByteTo[CurByte] and not (1 shl CurBit));
+              ByteTo^[CurByte]:=(ByteTo^[CurByte] and not (1 shl CurBit));
             end;
       end;
-    move(tmpBuffer^,ImageDataHeader.Data^,tmpDataSize);
+    move(tmpBuffer^,ImageDataHeader^.Data^,tmpDataSize);
     AResultData:=AInputData;
     AInputData:=nil;
   end;

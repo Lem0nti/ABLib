@@ -328,15 +328,4 @@ begin
   end;
 end;
 
-{$IFDEF FPC}
-procedure TRTSPParser.ClearData(AData: Pointer);
-var
-  DataFrame: PDataFrame;
-begin
-  DataFrame:=PDataFrame(AData);
-  FreeMem(DataFrame^.Data);
-  Dispose(DataFrame);
-end;
-{$ENDIF}
-
 end.

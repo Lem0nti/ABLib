@@ -8,7 +8,7 @@ uses
   ABL.IO.IOTypes;
 
 type
-  TABLImageType = (itBGR, itGray, itBit, itBGRIntegral, itGrayIntegral, itBitIntegral);
+  TABLImageType = (itBGR, itGray, itBit, itGrayIntegral, itBitIntegral);
 
   PImageDataHeader=^TImageDataHeader;
   TImageDataHeader=record

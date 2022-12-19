@@ -61,32 +61,32 @@ begin
   if DecodedFrame^.ImageType in [itBGR,itGray] then
   begin
     //интегральное
-    SetLength(Integral,DecodedFrame.Width,DecodedFrame.Height);
+    SetLength(Integral,DecodedFrame^.Width,DecodedFrame^.Height);
     if DecodedFrame^.ImageType=itBGR then
     begin
       RGBArrayFrom:=DecodedFrame^.Data;
       //сначала все нулевые, так быстрее
-      Integral[0,0]:=RGBArrayFrom[0].rgbtGreen;
-      for y := 1 to DecodedFrame.Height-1 do
-        Integral[0,y]:=Integral[0,y-1]+RGBArrayFrom[y*DecodedFrame.Width].rgbtGreen;
-      for x := 1 to DecodedFrame.Width-1 do
-        Integral[x,0]:=Integral[x-1,0]+RGBArrayFrom[x].rgbtGreen;
-      for y := 1 to DecodedFrame.Height-1 do
-        for x := 1 to DecodedFrame.Width-1 do
-          Integral[x,y]:=RGBArrayFrom[y*DecodedFrame.Width+x].rgbtGreen+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
+      Integral[0,0]:=RGBArrayFrom^[0].rgbtGreen;
+      for y := 1 to DecodedFrame^.Height-1 do
+        Integral[0,y]:=Integral[0,y-1]+RGBArrayFrom^[y*DecodedFrame^.Width].rgbtGreen;
+      for x := 1 to DecodedFrame^.Width-1 do
+        Integral[x,0]:=Integral[x-1,0]+RGBArrayFrom^[x].rgbtGreen;
+      for y := 1 to DecodedFrame^.Height-1 do
+        for x := 1 to DecodedFrame^.Width-1 do
+          Integral[x,y]:=RGBArrayFrom^[y*DecodedFrame^.Width+x].rgbtGreen+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
     end
     else
     begin
       ByteArrayFrom:=DecodedFrame^.Data;
       //сначала все нулевые, так быстрее
-      Integral[0,0]:=ByteArrayFrom[0];
-      for y := 1 to DecodedFrame.Height-1 do
-        Integral[0,y]:=Integral[0,y-1]+ByteArrayFrom[y*DecodedFrame.Width];
-      for x := 1 to DecodedFrame.Width-1 do
-        Integral[x,0]:=Integral[x-1,0]+ByteArrayFrom[x];
-      for y := 1 to DecodedFrame.Height-1 do
-        for x := 1 to DecodedFrame.Width-1 do
-          Integral[x,y]:=ByteArrayFrom[y*DecodedFrame.Width+x]+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
+      Integral[0,0]:=ByteArrayFrom^[0];
+      for y := 1 to DecodedFrame^.Height-1 do
+        Integral[0,y]:=Integral[0,y-1]+ByteArrayFrom^[y*DecodedFrame^.Width];
+      for x := 1 to DecodedFrame^.Width-1 do
+        Integral[x,0]:=Integral[x-1,0]+ByteArrayFrom^[x];
+      for y := 1 to DecodedFrame^.Height-1 do
+        for x := 1 to DecodedFrame^.Width-1 do
+          Integral[x,y]:=ByteArrayFrom^[y*DecodedFrame^.Width+x]+Integral[x,y-1]+Integral[x-1,y]-Integral[x-1,y-1];
     end;
     //бинаризация
     FLock.Enter;
@@ -94,7 +94,7 @@ begin
     tmpOffset:=FOffset;
     FLock.Leave;
     DecValue:=(1-tmpOffset/100);
-    FillChar(FBuffer^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1,255);
+    FillChar(FBuffer^,(DecodedFrame^.Width*DecodedFrame^.Height div 8)+1,255);
     ByteArrayFrom:=DecodedFrame^.Data;
     if DecodedFrame^.ImageType=itBGR then
     begin
@@ -110,23 +110,23 @@ begin
     for y := 0 to tmpRadius-1 do
     begin
       yTo:=y+tmpRadius;
-      for x := 0 to DecodedFrame.Width-1 do
+      for x := 0 to DecodedFrame^.Width-1 do
       begin
         //среднее
         xFrom:=x-tmpRadius;
         if xFrom<0 then
           xFrom:=0;
         xTo:=x+tmpRadius;
-        if xTo>DecodedFrame.Width-1 then
-          xTo:=DecodedFrame.Width-1;
+        if xTo>DecodedFrame^.Width-1 then
+          xTo:=DecodedFrame^.Width-1;
         Neighbor:=Integral[xTo,yTo];
         if xFrom>0 then
           Neighbor:=Neighbor-Integral[xFrom-1,yTo];
         Neighbor:=Round(DecValue*Neighbor/((xTo-XFrom)*yTo));
         //больше-меньше?
-        if ByteArrayFrom[(y*DecodedFrame.Width+x)*BytesPerPixel+bInc]<Neighbor then
+        if ByteArrayFrom^[(y*DecodedFrame^.Width+x)*BytesPerPixel+bInc]<Neighbor then
         begin
-          PixelOffset:=y*DecodedFrame.Width+x;
+          PixelOffset:=y*DecodedFrame^.Width+x;
           CurrentByte:=PixelOffset div 8;
           CurrentBit:=PixelOffset mod 8;
           BW:=PByte(NativeUInt(FBuffer)+CurrentByte);
@@ -136,23 +136,23 @@ begin
     end;
     WholeSquare:=Round(Power(tmpRadius*2,2));
     DecValue:=DecValue/WholeSquare;
-    for y := tmpRadius to DecodedFrame.Height-1 do
+    for y := tmpRadius to DecodedFrame^.Height-1 do
     begin
       if Terminated then
         exit;
       yFrom:=y-tmpRadius;
       yTo:=y+tmpRadius;
-      if yTo>DecodedFrame.Height-1 then
-        yTo:=DecodedFrame.Height-1;
-      for x := 0 to DecodedFrame.Width-1 do
+      if yTo>DecodedFrame^.Height-1 then
+        yTo:=DecodedFrame^.Height-1;
+      for x := 0 to DecodedFrame^.Width-1 do
       begin
         //среднее
         xFrom:=x-tmpRadius;
         if xFrom<0 then
           xFrom:=0;
         xTo:=x+tmpRadius;
-        if xTo>DecodedFrame.Width-1 then
-          xTo:=DecodedFrame.Width-1;
+        if xTo>DecodedFrame^.Width-1 then
+          xTo:=DecodedFrame^.Width-1;
         Neighbor:=Integral[xTo,yTo]-Integral[xTo,yFrom-1];
         if xFrom>0 then
           Neighbor:=Neighbor-Integral[xFrom-1,yTo];
@@ -160,9 +160,9 @@ begin
           Neighbor:=Neighbor+Integral[xFrom-1,yFrom-1];
         Neighbor:=Round(DecValue*Neighbor);
         //больше-меньше?
-        if ByteArrayFrom[(y*DecodedFrame.Width+x)*BytesPerPixel+bInc]<Neighbor then
+        if ByteArrayFrom^[(y*DecodedFrame^.Width+x)*BytesPerPixel+bInc]<Neighbor then
         begin
-          PixelOffset:=y*DecodedFrame.Width+x;
+          PixelOffset:=y*DecodedFrame^.Width+x;
           CurrentByte:=PixelOffset div 8;
           CurrentBit:=PixelOffset mod 8;
           BW:=PByte(NativeUInt(FBuffer)+CurrentByte);
@@ -170,11 +170,11 @@ begin
         end;
       end;
     end;
-    DecodedFrame.ImageType:=itBit;
+    DecodedFrame^.ImageType:=itBit;
     if assigned(FOutputQueue) then
     begin
-      DecodedFrame.TimedDataHeader.DataHeader.Size:=(DecodedFrame.Width*DecodedFrame.Height div 8)+1+SizeOf(TImageDataHeader);
-      Move(FBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
+      DecodedFrame^.TimedDataHeader.DataHeader.Size:=(DecodedFrame^.Width*DecodedFrame^.Height div 8)+1+SizeOf(TImageDataHeader);
+      Move(FBuffer^,DecodedFrame^.Data^,(DecodedFrame^.Width*DecodedFrame^.Height div 8)+1);
       AResultData:=AInputData;
       AInputData:=nil;
     end;

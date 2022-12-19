@@ -13,7 +13,7 @@ type
 
   TImageCutter=class(TDirectThread)
   private
-    ReceiverList: TArray<TReceiverInfo>;
+    ReceiverList: array of TReceiverInfo;
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
@@ -55,7 +55,7 @@ var
   tmpData: Pointer;
 begin
   DecodedFrame:=AInputData;
-  if DecodedFrame.ImageType in [itBGR,itGray] then
+  if DecodedFrame^.ImageType in [itBGR,itGray] then
   begin
     q:=0;
     FLock.Enter;
@@ -77,13 +77,13 @@ begin
           ACutRect.Top:=ACutRect.Top-ACutRect.Bottom;
         end;
         //превращаем относительный прямоугольник в конкретный
-        AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame.Width),Round((ACutRect.Top)/10000*DecodedFrame.Height),
-            Round(ACutRect.Right/10000*DecodedFrame.Width),Round((ACutRect.Bottom)/10000*DecodedFrame.Height));
+        AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame^.Width),Round((ACutRect.Top)/10000*DecodedFrame^.Height),
+            Round(ACutRect.Right/10000*DecodedFrame^.Width),Round((ACutRect.Bottom)/10000*DecodedFrame^.Height));
         while AbsRect.Width mod 4 > 0 do
           AbsRect.Width:=AbsRect.Width+1;
         if assigned(tmpOutputQueue) then
         begin
-          if DecodedFrame.ImageType=itBGR then
+          if DecodedFrame^.ImageType=itBGR then
             BytesPerPixel:=3
           else
             BytesPerPixel:=1;
@@ -91,12 +91,12 @@ begin
           GetMem(tmpData,tmpDataSize);
           Move(AInputData^,tmpData^,SizeOf(TImageDataHeader));
           OutputFrame:=tmpData;
-          OutputFrame.Width:=AbsRect.Width;
-          OutputFrame.Height:=AbsRect.Height;
-          OutputFrame.TimedDataHeader.DataHeader.Size:=tmpDataSize;
+          OutputFrame^.Width:=AbsRect.Width;
+          OutputFrame^.Height:=AbsRect.Height;
+          OutputFrame^.TimedDataHeader.DataHeader.Size:=tmpDataSize;
           for y := AbsRect.Top to AbsRect.Bottom-1 do
-            Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*BytesPerPixel)^,
-                PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*BytesPerPixel)^,AbsRect.Width*BytesPerPixel);
+            Move(PByte(NativeUInt(DecodedFrame^.Data)+(y*DecodedFrame^.Width+AbsRect.Left)*BytesPerPixel)^,
+                PByte(NativeUInt(OutputFrame^.Data)+((y-AbsRect.Top)*AbsRect.Width)*BytesPerPixel)^,AbsRect.Width*BytesPerPixel);
           tmpOutputQueue.Push(tmpData);
         end;
       end;
