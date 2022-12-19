@@ -1,7 +1,7 @@
 object MainFM: TMainFM
-  Left = 256
+  Left = 384
   Height = 379
-  Top = 145
+  Top = 218
   Width = 621
   Caption = 'MainFM'
   ClientHeight = 379
@@ -10,6 +10,7 @@ object MainFM: TMainFM
   OnDestroy = FormDestroy
   OnResize = FormResize
   LCLVersion = '2.2.4.0'
+  WindowState = wsMaximized
   object pnlLeft: TPanel
     Left = 0
     Height = 350
@@ -28,6 +29,9 @@ object MainFM: TMainFM
       Align = alTop
       Caption = 'pnlLeftTop'
       TabOrder = 0
+      OnMouseDown = pnlLeftTopMouseDown
+      OnMouseMove = pnlLeftTopMouseMove
+      OnMouseUp = pnlLeftTopMouseUp
     end
     object pnlLeftBottom: TPanel
       Left = 1

@@ -17,16 +17,17 @@ implementation
 
 procedure TTCPToLog.DoExecute(var AInputData, AResultData: Pointer);
 var
-  ReadedData: PDataFrame;
+  ReadedData: PTimedDataHeader;
   tmpString: PString;
   tmpAnsiString: AnsiString;
+  tmpDataSize: integer;
 begin
-  ReadedData:=PDataFrame(AInputData);
-  SetLength(tmpAnsiString,ReadedData.Size);
-  Move(ReadedData.Data^,tmpAnsiString[1],ReadedData.Size);
+  ReadedData:=AInputData;
+  tmpDataSize:=ReadedData.DataHeader.Size-SizeOf(TTimedDataHeader);
+  SetLength(tmpAnsiString,tmpDataSize);
+  Move(ReadedData.Data^,tmpAnsiString[1],tmpDataSize);
   new(tmpString);
-  setstring(tmpString^, PChar(string(tmpAnsiString)), ReadedData.Size);
-  Dispose(ReadedData.Data);
+  setstring(tmpString^, PChar(string(tmpAnsiString)),tmpDataSize);
   SendMessage(MSGReceiver,WM_ABL_THREAD_EXECUTED,NativeUint(tmpString),0);
 end;
 

@@ -11,6 +11,7 @@ object MainFM: TMainFM
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  WindowState = wsMaximized
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
@@ -22,10 +23,10 @@ object MainFM: TMainFM
     ActivePage = tsVS_Render
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 635
-    ExplicitHeight = 408
     object tsCore: TTabSheet
       Caption = 'Core'
+      ExplicitLeft = 0
+      ExplicitTop = 0
       ExplicitWidth = 627
       ExplicitHeight = 380
       object bCreate: TButton
@@ -62,6 +63,8 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
       ExplicitWidth = 627
       ExplicitHeight = 380
       object mIOLog: TMemo
@@ -99,8 +102,6 @@ object MainFM: TMainFM
     object tsVS_Render: TTabSheet
       Caption = 'VS + Render + IA'
       ImageIndex = 2
-      ExplicitWidth = 627
-      ExplicitHeight = 380
       object pnlVideo: TPanel
         Left = 16
         Top = 56
@@ -112,8 +113,6 @@ object MainFM: TMainFM
         Caption = 'pnlVideo'
         TabOrder = 0
         OnResize = pnlVideoResize
-        ExplicitWidth = 593
-        ExplicitHeight = 310
         object pnlLeftTop: TPanel
           Left = 0
           Top = 0

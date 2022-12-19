@@ -40,7 +40,6 @@ type
     RenderLeftTop,RenderRightTop,RenderLeftBottom,RenderRightBottom: TDirectRender;
     RTSPReceiver: TRTSPReceiver;
     VideoDecoder: TVideoDecoder;
-    procedure MainDraw(DC: HDC; Width, Height: integer);
   public
     { Public declarations }
   end;
@@ -179,12 +178,6 @@ begin
   pnlLeft.Width:=ClientWidth div 2;
   pnlLeftTop.Height:=(ClientHeight-pnlTop.Height) div 2;
   pnlRightTop.Height:=(ClientHeight-pnlTop.Height) div 2;
-end;
-
-procedure TMinFM.MainDraw(DC: HDC; Width, Height: integer);
-begin
-//  if FFocusRect.Left>0 then
-//    DrawFocusRect(DC,FFocusRect);
 end;
 
 procedure TMinFM.pnlLeftTopMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);

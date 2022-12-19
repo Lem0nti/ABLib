@@ -29,6 +29,12 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure pnlLeftTopMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure pnlLeftTopMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure pnlLeftTopMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   private
     BinConverter,OpenConverter,CloseConverter: TImageConverter;
     Closing: TClosing;
@@ -180,6 +186,34 @@ begin
   pnlLeft.Width:=ClientWidth div 2;
   pnlLeftTop.Height:=(ClientHeight-pnlTop.Height) div 2;
   pnlRightTop.Height:=(ClientHeight-pnlTop.Height) div 2;
+end;
+
+procedure TMainFM.pnlLeftTopMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  if Button=mbLeft then
+    FFocusRect.TopLeft:=Types.Point(X,Y);
+end;
+
+procedure TMainFM.pnlLeftTopMouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  if ssLeft in Shift then
+  begin
+    FFocusRect.BottomRight:=Types.Point(X,Y);
+    RenderLeftTop.Drawer.FocusRect:=FFocusRect;
+  end;
+end;
+
+procedure TMainFM.pnlLeftTopMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  if Button=mbLeft then
+  begin
+    ImageCutter.UpdateReceiver(LocalBinarization.InputQueue,Types.Rect(Round(FFocusRect.Left/pnlLeftTop.Width*10000),Round(FFocusRect.Top/pnlLeftTop.Height*10000),
+        Round(FFocusRect.Right/pnlLeftTop.Width*10000),Round(FFocusRect.Bottom/pnlLeftTop.Height*10000)));
+  end;
+  RenderLeftTop.Drawer.FocusRect:=Types.Rect(0,0,0,0);
 end;
 
 end.

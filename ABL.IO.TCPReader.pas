@@ -164,7 +164,7 @@ var
 begin
   FreeOnTerminate:=true;
   try
-    StrNum:='166';
+    StrNum:='167';
     try
       SetLength(ABytes,1024);
       SetLength(AResultBytes,0);
@@ -194,7 +194,6 @@ begin
             break;
           if w=INVALID_SOCKET then
           begin
-            StrNum:='197';
             if (not Terminated) and assigned(FReader)  then
             begin
               {$IFDEF UNIX}
