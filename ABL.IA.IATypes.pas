@@ -15,6 +15,7 @@ type
     Cnt: Cardinal;
   end;
 
+  PRGBTriple=^TRGBTriple;
   TRGBTriple = record
     rgbtBlue: Byte;
     rgbtGreen: Byte;

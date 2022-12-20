@@ -25,10 +25,6 @@ object MainFM: TMainFM
     TabOrder = 0
     object tsCore: TTabSheet
       Caption = 'Core'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 627
-      ExplicitHeight = 380
       object bCreate: TButton
         Left = 16
         Top = 8
@@ -47,8 +43,6 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitWidth = 432
-        ExplicitHeight = 356
       end
       object bSend: TButton
         Left = 16
@@ -63,10 +57,6 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 627
-      ExplicitHeight = 380
       object mIOLog: TMemo
         Left = 192
         Top = 18
@@ -76,8 +66,6 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 432
-        ExplicitHeight = 356
       end
       object leText: TLabeledEdit
         Left = 11
@@ -177,7 +165,6 @@ object MainFM: TMainFM
         EditLabel.Caption = 'RTSP '#1089#1089#1099#1083#1082#1072': '
         LabelPosition = lpLeft
         TabOrder = 1
-        Text = 'rtsp://admin:a0w2j5b61!@192.168.2.3:554/stream1'
         OnKeyDown = leRTSPLinkKeyDown
       end
       object bGo: TBitBtn

@@ -235,6 +235,8 @@ begin
     ImageResize.Free;
   if assigned(ImageCutter) then
     ImageCutter.Free;
+  if assigned(IfMotionLeft) then
+    IfMotionLeft.Free;
   if assigned(LocalBinarization) then
   begin
     LocalBinarization.Stop;
@@ -244,7 +246,7 @@ begin
   if assigned(FindDark) then
   begin
     FindDark.Stop;
-    Sleep(100);
+    Sleep(200);
     FindDark.Free;
   end;
 end;

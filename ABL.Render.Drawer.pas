@@ -3,7 +3,8 @@
 interface
 
 uses
-  ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics, Windows, DateUtils;
+  ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics,
+  {$IFDEF UNIX} {$ELSE}Windows,{$ENDIF} DateUtils;
 
 type
   TDrawNotify = procedure (DC: HDC; Width, Height: integer) of object;

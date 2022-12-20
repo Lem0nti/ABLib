@@ -89,7 +89,6 @@ object MinFM: TMinFM
       Align = alCustom
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
-      Text = 'rtsp://admin:a0w2j5b61!@192.168.2.3:554/stream1'
       OnChange = eLinkChange
       OnKeyDown = eLinkKeyDown
     end

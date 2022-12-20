@@ -3,7 +3,7 @@ unit ABL.IA.ImageConverter;
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.VS.VSTypes, ABL.Core.BaseQueue, Windows, SyncObjs;
+  ABL.Core.DirectThread, ABL.VS.VSTypes, ABL.Core.BaseQueue, ABL.IA.IATypes, SyncObjs;
 
 type
   TImageConverter=class(TDirectThread)

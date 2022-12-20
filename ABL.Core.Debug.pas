@@ -3,7 +3,7 @@
 interface
 
 uses
-  Windows, Classes, SysUtils, IniFiles;
+  Classes, SysUtils, IniFiles, {$IFDEF UNIX}dl{$ELSE}Windows{$ENDIF}, SyncObjs;
 
 type
   PDebugKey = ^TDebugKey;
@@ -15,7 +15,7 @@ type
   TDebug = class
   private
     KeyList: TList;
-    FLock: TRTLCriticalSection;
+    FLock: TCriticalSection;
     procedure SaveMsg(AKey,AMsg,AFileName: string);
   public
     Constructor Create;
@@ -117,7 +117,7 @@ var
   Key: PDebugKey;
 begin
   inherited;
-  InitializeCriticalSection(FLock);
+  FLock:=TCriticalSection.Create;
   KeyList:=TList.Create;
   sl:=TStringList.Create;
   try
@@ -145,7 +145,7 @@ begin
   Debug:=nil;
   if assigned(KeyList) then
     FreeAndNil(KeyList);
-  DeleteCriticalSection(FLock);
+  FLock.Free;
   inherited;
 end;
 
@@ -154,6 +154,23 @@ begin
   SaveMsg(AKey,AMsg,ChangeFileExt(ParamStr(0),'.log'));
 end;
 
+{$IFDEF UNIX}
+function GetModuleFileName(Address: Pointer): String;
+const
+  Dummy: Boolean = False;
+var
+  dlinfo: dl_info;
+begin
+  if Address = nil then Address:= @Dummy;
+  FillChar({%H-}dlinfo, SizeOf(dlinfo), #0);
+  if dladdr(Address, @dlinfo) = 0 then
+    Result:= EmptyStr
+  else begin
+    Result:= UTF8Encode(dlinfo.dli_fname);
+  end;
+end;
+{$ENDIF}
+
 procedure TDebug.SaveMsg(AKey,AMsg,AFileName: string);
 var
   TxtFile: Text;
@@ -161,8 +178,9 @@ var
   dk: PDebugKey;
   fn: TFileName;
   TheFileName: array[0..MAX_PATH] of char;
+  tmpFileName: string;
 begin
-  EnterCriticalSection(FLock);
+  FLock.Enter;
   try
     if trim(AMsg)<>'' then
       for q := 0 to KeyList.Count - 1 do
@@ -181,8 +199,13 @@ begin
             else
               Append(TxtFile);
             FillChar(TheFileName, sizeof(TheFileName), #0);
+            {$IFDEF UNIX}
+            tmpFileName:=GetModuleFileName(get_caller_addr(get_frame));
+            {$ELSE}
             GetModuleFileName(hInstance, TheFileName, sizeof(TheFileName));
-            Writeln(TxtFile,AKey+' '+DateTimeToStr(now)+' '+ExtractFileName(trim(TheFileName))+' '+AMsg);
+            tmpFileName:=trim(TheFileName);
+            {$ENDIF}
+            Writeln(TxtFile,AKey+' '+DateTimeToStr(now)+' '+ExtractFileName(tmpFileName)+' '+AMsg);
             Close(TxtFile);
           except
           end;
@@ -190,7 +213,7 @@ begin
         end;
     end;
   finally
-    LeaveCriticalSection(FLock);
+    FLock.Leave;
   end;
 end;
 

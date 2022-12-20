@@ -115,7 +115,12 @@ begin
     for q := 0 to Length(ReceiverList)-1 do
       if ReceiverList[q].Receiver=AReceiver then
       begin
+        {$IFDEF UNIX}
+        Move(ReceiverList[q+1],ReceiverList[q],sizeof(TReceiverInfo)*(high(ReceiverList)-q));
+        setlength(ReceiverList,high(ReceiverList));
+        {$ELSE}
         Delete(ReceiverList,q,1);
+        {$ENDIF}
         break;
       end;
   finally
