@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ABL.IA.ImageConverter, IniFiles, Types,
-  ABL.IA.Closing, ABL.Core.QueueMultiplier, ABL.IA.ImageCutter, ABL.IA.LocalBinarization, ABL.VS.FFMPEG, Windows,
+  ABL.IA.Closing, ABL.Core.QueueMultiplier, ABL.IA.ImageCutter, ABL.IA.LocalBinarization, ABL.VS.FFMPEG, {$IFDEF WINDOWS}Windows,{$ENDIF}
   ABL.IA.Opening, ABL.Render.DirectRender, ABL.VS.RTSPReceiver, ABL.VS.VideoDecoder, ABL.Core.ThreadController;
 
 type
@@ -152,9 +152,12 @@ begin
 end;
 
 procedure TMainFM.FormCreate(Sender: TObject);
+{$IFDEF WINDOWS}
 var
   AFMask,w: integer;
+{$ENDIF}
 begin
+  {$IFDEF WINDOWS}
   if System.CPUCount>2 then
   begin
     //значение маски=(2 в_степени <кол-во_процессоров> - 2)
@@ -165,6 +168,7 @@ begin
     AFMask:=AFMask-2;
     SetProcessAffinityMask(GetCurrentProcess,AFMask);
   end;
+  {$ENDIF}
   with TIniFile.Create(ChangeFileExt(ParamStr(0),'.ini')) do
     try
       eLink.Text:=ReadString('MAIN','Link',eLink.Text);

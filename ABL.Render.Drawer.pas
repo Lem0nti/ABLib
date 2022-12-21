@@ -4,10 +4,14 @@ interface
 
 uses
   ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics,
-  {$IFDEF UNIX} {$ELSE}Windows,{$ENDIF} DateUtils;
+  {$IFDEF UNIX}Xlib, X{$ELSE}Windows{$ENDIF}, DateUtils;
 
 type
+  {$IFDEF UNIX}
+  TDrawNotify = procedure (Display: PDisplay; Drawable: TDrawable; GC: TGC) of object;
+  {$ELSE}
   TDrawNotify = procedure (DC: HDC; Width, Height: integer) of object;
+  {$ENDIF}
 
   TDrawer=class(TBaseObject)
   private
@@ -20,6 +24,11 @@ type
     FVerticalMirror: boolean;
     LastPicture: Pointer;
     SkipThru: TDateTime;
+    {$IFDEF UNIX}
+    FDisplay: PDisplay;
+    FImage: PXImage;
+    {$ENDIF}
+    ScaledBuff: Pointer;
     function GetShowTime: boolean;
     procedure SetShowTime(const Value: boolean);
     function GetVerticalMirror: boolean;
@@ -31,7 +40,7 @@ type
     function GetOnDraw: TDrawNotify;
     procedure SetOnDraw(const Value: TDrawNotify);
   public
-    constructor Create(AHandle: THandle; AName: string = ''); reintroduce;
+    constructor Create(AName: string = ''); reintroduce;
     destructor Destroy; override;
     function Draw(ImageData: PImageDataHeader): integer;
     procedure SetHandle(const Value: THandle);
@@ -46,20 +55,36 @@ implementation
 
 { TDrawer }
 
-constructor TDrawer.Create(AHandle: THandle; AName: string);
+constructor TDrawer.Create(AName: string);
+var
+  screen: integer;
+  visual: PVisual;
 begin
   inherited Create(AName);
   SkipThru:=0;
   LastPicture:=nil;
   FVerticalMirror:=true;
-  SetHandle(AHandle);
+  FHandle:=0;
   FShowTime:=false;
+  GetMem(ScaledBuff,16000000);
+  {$IFDEF UNIX}
+  FDisplay:=XOpenDisplay(nil);
+  screen:=DefaultScreen(FDisplay);
+  visual:=DefaultVisual(FDisplay,screen);
+  FImage:=XCreateImage(FDisplay,visual,24,ZPixmap,0,PChar(scaledBuff),100,100,32,0);
+  {$ELSE}
   Font:=TFont.Create;
+  {$ENDIF}
 end;
 
 destructor TDrawer.Destroy;
 begin
+  {$IFDEF UNIX}
+  XCloseDisplay(FDisplay);
+  {$ELSE}
   Font.Free;
+  {$ENDIF}
+  FreeMem(ScaledBuff);
   inherited;
 end;
 
