@@ -1,17 +1,13 @@
-program ImageAlgorithmExample;
+program ImageAlgorithmExampleL;
 
 {$mode objfpc}{$H+}
 
 uses
-  {$IFDEF UNIX}
+  {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
-  {$ENDIF}
-  {$IFDEF HASAMIGA}
-  athreads,
-  {$ENDIF}
+  {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, iaeMain_FM
-  { you can add units after this };
+  Forms, iaeMain_FM;
 
 {$R *.res}
 

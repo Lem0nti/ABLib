@@ -90,10 +90,15 @@ end;
 
 function TDrawer.Draw(ImageData: PImageDataHeader): integer;
 var
+  {$IFDEF UNIX}
+  attr: PXWindowAttributes;
+  tmpStatus: integer;
+  {$ELSE}
   bmpinfo: BITMAPINFO;
   drawDC: HDC;
+  {$ENDIF}
   ppRect: TRect;
-  x,y,Offset: integer;
+  x,y,Offset,RectWidth,RectHeight: integer;
   wh,hh: Real;
   lRatio: Double;
   src: TRect;
@@ -103,14 +108,46 @@ begin
   if FHandle>0 then
   begin
     try
+      {$IFDEF UNIX}
+      FImage^.bitmap_unit:= 24;
+      FImage^.bitmap_pad:= 24;
+      FImage^.depth:= 24;
+      FImage^.bits_per_pixel:= 24;
+      {$ELSE}
       ZeroMemory(@bmpinfo,sizeof(bmpinfo));
       bmpinfo.bmiHeader.biSize:=sizeof(bmpinfo.bmiHeader);
       bmpinfo.bmiHeader.biPlanes:=1;
       bmpinfo.bmiHeader.biBitCount:=24;
       bmpinfo.bmiHeader.biCompression:=BI_RGB;
+      {$ENDIF}
       FLock.Enter;
       try
+        {$IFDEF UNIX}
+        tmpStatus:=XGetWindowAttributes(FDisplay,FHandle,attr);
+        if tmpStatus=0 then
+          exit;
+        RectWidth:=attr^.width;
+        RectHeight:=attr^.height;
+        if RectWidth>2560 then
+            RectWidth:=2560
+        else if RectWidth mod 4>0 then
+            RectWidth:=RectWidth+4-RectWidth mod 4;
+        if RectHeight>1440 then
+            RectHeight:=1440;
+        FImage^.width:=RectWidth;
+        FImage^.height:=RectHeight;
+        FImage^.bytes_per_line:=RectWidth*3;
+        {$ELSE}
         GetWindowRect(FHandle,ppRect);
+        RectWidth:=ppRect.Width;
+        RectHeight:=ppRect.Height;
+        if RectWidth>2560 then
+            RectWidth:=2560
+        else if RectWidth mod 4>0 then
+            RectWidth:=RectWidth+4-RectWidth mod 4;
+        if RectHeight>1440 then
+            RectHeight:=1440;
+        {$ENDIF}
         if (ppRect.Width>0) and (ppRect.Height>0) then
         begin
           while ppRect.Width mod 4 > 0 do

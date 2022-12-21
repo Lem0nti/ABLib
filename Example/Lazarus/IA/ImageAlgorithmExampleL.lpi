@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="12"/>
-    <PathDelim Value="\"/>
+    <Version Value="11"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="ImageAlgorithmExample"/>
+      <MainUnit Value="0"/>
+      <Title Value="ImageAlgorithmExampleL"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
@@ -14,8 +14,8 @@
       </XPManifest>
       <Icon Value="0"/>
     </General>
-    <BuildModes>
-      <Item Name="Win64" Default="True"/>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -23,46 +23,41 @@
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
+      <Modes Count="0"/>
     </RunParams>
-    <RequiredPackages>
-      <Item>
+    <RequiredPackages Count="1">
+      <Item1>
         <PackageName Value="LCL"/>
-      </Item>
+      </Item1>
     </RequiredPackages>
-    <Units>
-      <Unit>
-        <Filename Value="ImageAlgorithmExample.lpr"/>
+    <Units Count="3">
+      <Unit0>
+        <Filename Value="ImageAlgorithmExampleL.lpr"/>
         <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
+      </Unit0>
+      <Unit1>
+        <Filename Value="iaemain_fm.lfm"/>
+        <IsPartOfProject Value="True"/>
+      </Unit1>
+      <Unit2>
         <Filename Value="iaemain_fm.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="MainFM"/>
         <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
         <UnitName Value="iaeMain_FM"/>
-      </Unit>
+      </Unit2>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <PathDelim Value="\"/>
     <Target>
-      <Filename Value="ImageAlgorithmExample"/>
+      <Filename Value="ImageAlgorithmExampleL"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\.."/>
-      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../.."/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
-    <CodeGeneration>
-      <TargetCPU Value="x86_64"/>
-      <TargetOS Value="win64"/>
-    </CodeGeneration>
     <Linking>
-      <Debugging>
-        <DebugInfoType Value="dsDwarf2Set"/>
-      </Debugging>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>
@@ -71,16 +66,16 @@
     </Linking>
   </CompilerOptions>
   <Debugging>
-    <Exceptions>
-      <Item>
+    <Exceptions Count="3">
+      <Item1>
         <Name Value="EAbort"/>
-      </Item>
-      <Item>
+      </Item1>
+      <Item2>
         <Name Value="ECodetoolError"/>
-      </Item>
-      <Item>
+      </Item2>
+      <Item3>
         <Name Value="EFOpenError"/>
-      </Item>
+      </Item3>
     </Exceptions>
   </Debugging>
 </CONFIG>
