@@ -98,7 +98,7 @@ var
   drawDC: HDC;
   {$ENDIF}
   ppRect: TRect;
-  x,y,Offset,RectWidth,RectHeight: integer;
+  x,y,Offset,OffsetFrom,RectWidth,RectHeight: integer;
   wh,hh: Real;
   lRatio: Double;
   src: TRect;
@@ -148,17 +148,17 @@ begin
         if RectHeight>1440 then
             RectHeight:=1440;
         {$ENDIF}
-        if (ppRect.Width>0) and (ppRect.Height>0) then
+        if (RectWidth>0) and (RectHeight>0) then
         begin
-          while ppRect.Width mod 4 > 0 do
-            ppRect.Width:=ppRect.Width+1;
-          if (ImageData^.Width>ppRect.Width) or (ImageData^.Height>ppRect.Height) then
+          while RectWidth mod 4 > 0 do
+            RectWidth:=RectWidth+1;        
+          wh:=ImageData^.Width/RectWidth;
+          hh:=ImageData^.Height/RectHeight;
+          if (ImageData^.Width<>RectWidth) or (ImageData^.Height<>RectHeight) then
           begin
-            wh:=ImageData^.Width/ppRect.Width;
-            hh:=ImageData^.Height/ppRect.Height;
             Offset:=0;
-            for y := 0 to ppRect.Height-1 do
-              for x := 0 to ppRect.Width-1 do
+            for y := 0 to RectHeight-1 do
+              for x := 0 to RectWidth-1 do
               begin
                 Move(PByte(NativeUInt(ImageData^.Data)+(Round(y*hh)*ImageData^.Width+Round(x*wh))*3)^,PByte(NativeUInt(ImageData^.Data)+Offset*3)^,3);
                 inc(Offset);
