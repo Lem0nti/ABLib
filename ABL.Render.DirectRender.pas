@@ -50,7 +50,7 @@ constructor TDirectRender.Create(AName: string);
 begin
   inherited Create(nil,nil,AName);
   FInputQueue:=TThreadItem.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
-  FDrawer:=TDrawer.Create(0,ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
+  FDrawer:=TDrawer.Create(ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
   SkipThru:=0;
   FLastPicture:=nil;
   Active:=true;

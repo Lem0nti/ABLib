@@ -93,16 +93,18 @@ var
   {$IFDEF UNIX}
   attr: PXWindowAttributes;
   tmpStatus: integer;
+  gc: TGC;
   {$ELSE}
   bmpinfo: BITMAPINFO;
   drawDC: HDC;
   {$ENDIF}
   ppRect: TRect;
-  x,y,Offset,OffsetFrom,RectWidth,RectHeight: integer;
+  x,y,Offset,OffsetFrom,RectWidth,RectHeight,tmpX,tmpY: integer;
   wh,hh: Real;
   lRatio: Double;
   src: TRect;
   OutText: string;
+  ByteFrom,ByteTo: PByteArray;
 begin
   result:=0;
   if FHandle>0 then
@@ -157,15 +159,35 @@ begin
           if (ImageData^.Width<>RectWidth) or (ImageData^.Height<>RectHeight) then
           begin
             Offset:=0;
+            FillChar(scaledBuff^,255,RectWidth*RectHeight*3);
+            ByteFrom:=ImageData^.Data;
+            ByteTo:=scaledBuff;
             for y := 0 to RectHeight-1 do
               for x := 0 to RectWidth-1 do
               begin
-                Move(PByte(NativeUInt(ImageData^.Data)+(Round(y*hh)*ImageData^.Width+Round(x*wh))*3)^,PByte(NativeUInt(ImageData^.Data)+Offset*3)^,3);
+                tmpY:=Round(hh*y);
+                if tmpY>ImageData^.Height-1 then
+                    tmpY:=ImageData^.Height-1;
+                tmpX:=Round(wh*x);
+                if tmpX>ImageData^.Width-1 then
+                    tmpX:=ImageData^.Width-1;
+                OffsetFrom:=(tmpY*ImageData^.Width+tmpX)*3;
+                Move(ByteFrom[OffsetFrom],ByteTo[Offset*3],3);
                 inc(Offset);
               end;
             ImageData^.Width:=ppRect.Width;
             ImageData^.Height:=ppRect.Height;
-          end;
+          end
+          else
+            Move(ImageData^.Data^,scaledBuff^,RectWidth*RectHeight*3);
+          {$IFDEF UNIX}
+          XSynchronize(FDisplay, true);
+          gc:=XCreateGC(FDisplay, FHandle, 0,nil);
+          XPutImage(FDisplay, FHandle, gc, FImage, 0, 0, 0, 0, RectWidth, RectHeight);
+          if assigned(FOnDraw) then
+            FOnDraw(FDisplay, FHandle, gc);
+          XFreeGC(FDisplay, gc);
+          {$ELSE}
           bmpinfo.bmiHeader.biWidth:=ImageData^.Width;
           bmpinfo.bmiHeader.biSizeImage:=ImageData^.Width*ImageData^.Height*3;
           if ImageData^.FlipMarker then
@@ -205,6 +227,7 @@ begin
           finally
             ReleaseDC(FHandle,drawDC);
           end;
+          {$ENDIF}
         end;
       finally
         FLock.Leave;

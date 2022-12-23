@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.IO.NetworkReader, ABL.IO.Reader, ABL.Core.BaseQueue, {$IFDEF UNIX}sockets{$ELSE}WinSock{$ENDIF}, SysUtils,
-  ABL.Core.Debug, ABL.IO.IOTypes, DateUtils, Classes, Generics.Collections;
+  ABL.Core.Debug, ABL.IO.IOTypes, DateUtils, Classes, {$IFDEF UNIX}fgl{$ELSE}Generics.Collections{$ENDIF};
 
 type
   TConnectionReader=class;
