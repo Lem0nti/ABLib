@@ -621,7 +621,31 @@ begin
     if (Link.Username<>'')and(Link.Password<>'') then
     begin
       //васик или дигест
-      if pos('basic',LowerCase(result))>0 then
+      if pos('digest',LowerCase(result))>0 then
+      begin
+        w:=pos('digest realm',LowerCase(result));
+        if w>0 then
+        begin
+          realm:=copy(result,w+14,64);
+          w:=Pos('"',realm);
+          if w>0 then
+            delete(realm,w,64);
+          w:=pos('nonce',LowerCase(result));
+          if w>0 then
+          begin
+            nonce:=copy(result,w+7,64);
+            w:=pos('"',nonce);
+            if w>0 then
+              delete(nonce,w,64);
+            authSeq:=AnsiString(GenerateAuthString(Link.Username,Link.Password,realm,string(AMethod),string(AURL),nonce));
+          end
+          else
+            SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 613: отсутствует digest nonce');
+        end
+        else
+          SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 616: отсутствует digest realm');
+      end
+      else if pos('basic',LowerCase(result))>0 then
       begin
         {$IFDEF FPC}
         Base64MidStream:=TStringStream.Create(Link.Username+':'+Link.Password);
@@ -647,30 +671,6 @@ begin
         move(authSeq[1],ABytes[0],length(authSeq));
         authSeq:='Basic '+AnsiString(TNetEncoding.Base64.EncodeBytesToString(ABytes));
         {$ENDIF}
-      end
-      else if pos('digest',LowerCase(result))>0 then
-      begin
-        w:=pos('digest realm',LowerCase(result));
-        if w>0 then
-        begin
-          realm:=copy(result,w+14,64);
-          w:=Pos('"',realm);
-          if w>0 then
-            delete(realm,w,64);
-          w:=pos('nonce',LowerCase(result));
-          if w>0 then
-          begin
-            nonce:=copy(result,w+7,64);
-            w:=pos('"',nonce);
-            if w>0 then
-              delete(nonce,w,64);
-            authSeq:=AnsiString(GenerateAuthString(Link.Username,Link.Password,realm,string(AMethod),string(AURL),nonce));
-          end
-          else
-            SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 613: отсутствует digest nonce');
-        end
-        else
-          SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 616: отсутствует digest realm');
       end;
       if authSeq<>'' then
       begin

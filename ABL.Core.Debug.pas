@@ -192,7 +192,7 @@ begin
           try
             fn:=ChangeFileExt(AFileName,'_log');
             ForceDirectories(fn);
-            fn:=fn+'\'+FormatDateTime('YYYYMMDD',now)+ExtractFileExt(AFileName);
+            fn:=fn+'/'+FormatDateTime('YYYYMMDD',now)+ExtractFileExt(AFileName);
             Assign(TxtFile,fn);
             if not FileExists(fn) then
               Rewrite(TxtFile)
