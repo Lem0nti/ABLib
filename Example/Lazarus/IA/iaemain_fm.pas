@@ -86,6 +86,7 @@ begin
     RenderLeftTop.Handle:=pnlLeftTop.Handle;
     DecodedMultiplier.AddReceiver(RenderLeftTop.InputQueue);
   end;
+  //exit;
   if not assigned(ImageCutter) then
   begin
     ImageCutter:=TImageCutter.Create(ThreadController.QueueByName('Cutter'),'ImageCutter');

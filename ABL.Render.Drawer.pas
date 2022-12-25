@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics,
-  {$IFDEF UNIX}Xlib, X{$ELSE}Windows{$ENDIF}, DateUtils;
+  {$IFDEF UNIX}Xlib, X, gtk2{$ELSE}Windows{$ENDIF}, DateUtils;
 
 type
   {$IFDEF UNIX}
@@ -94,6 +94,7 @@ var
   attr: PXWindowAttributes;
   tmpStatus: integer;
   gc: TGC;
+  Widget: PGtkWidget;
   {$ELSE}
   bmpinfo: BITMAPINFO;
   drawDC: HDC;
@@ -104,7 +105,7 @@ var
   lRatio: Double;
   src: TRect;
   OutText: string;
-  ByteFrom,ByteTo: PByteArray;
+  ByteFrom,ByteTo: PByte;
 begin
   result:=0;
   if FHandle>0 then
@@ -125,11 +126,11 @@ begin
       FLock.Enter;
       try
         {$IFDEF UNIX}
-        tmpStatus:=XGetWindowAttributes(FDisplay,FHandle,attr);
-        if tmpStatus=0 then
+        Widget:=PGtkWidget(FHandle);
+        if Widget^.window = nil then
           exit;
-        RectWidth:=attr^.width;
-        RectHeight:=attr^.height;
+        RectWidth:=Widget^.allocation.width;
+        RectHeight:=Widget^.allocation.height;
         if RectWidth>2560 then
             RectWidth:=2560
         else if RectWidth mod 4>0 then
@@ -172,7 +173,7 @@ begin
                 if tmpX>ImageData^.Width-1 then
                     tmpX:=ImageData^.Width-1;
                 OffsetFrom:=(tmpY*ImageData^.Width+tmpX)*3;
-                Move(ByteFrom[OffsetFrom],ByteTo[Offset*3],3);
+                Move(PByte(NativeUInt(ByteFrom)+OffsetFrom)^,PByte(NativeUInt(ByteTo)+Offset*3)^,3);
                 inc(Offset);
               end;
             ImageData^.Width:=ppRect.Width;

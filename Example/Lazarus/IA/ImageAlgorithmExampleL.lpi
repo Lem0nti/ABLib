@@ -42,7 +42,9 @@
       <Unit2>
         <Filename Value="iaemain_fm.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MainFM"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="iaeMain_FM"/>
       </Unit2>
     </Units>

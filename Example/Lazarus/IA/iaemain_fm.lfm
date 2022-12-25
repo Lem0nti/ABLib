@@ -9,7 +9,7 @@ object MainFM: TMainFM
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnResize = FormResize
-  LCLVersion = '2.0.6.0'
+  LCLVersion = '2.0.0.4'
   WindowState = wsMaximized
   object pnlLeft: TPanel
     Left = 0
@@ -83,7 +83,7 @@ object MainFM: TMainFM
     TabOrder = 2
     object eLink: TEdit
       Left = 85
-      Height = 33
+      Height = 29
       Top = 4
       Width = 529
       Align = alCustom

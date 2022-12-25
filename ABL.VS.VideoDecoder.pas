@@ -82,7 +82,7 @@ begin
     end;
     if Terminated then
       exit;
-    pkt^.size:=CFrame^.DataHeader.Size;
+    pkt^.size:=CFrame^.DataHeader.Size-SizeOf(TTimedDataHeader);
     pkt^.data:=CFrame^.Data;
     FLock.Enter;
     try
