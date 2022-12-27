@@ -7,10 +7,15 @@ interface
 const
   AV_NUM_DATA_POINTERS = 8;
 
+  {$IFDEF UNIX}                     
+  AVCODEC_LIBNAME = 'avcodec';
+  AVUTIL_LIBNAME  = 'avutil';
+  SWSCALE_LIBNAME = 'swscale';
+  {$ELSE}
   AVCODEC_LIBNAME = 'avcodec-58.dll';
   AVUTIL_LIBNAME  = 'avutil-56.dll';
   SWSCALE_LIBNAME = 'swscale-5.dll';
-
+  {$ENDIF}
   SWS_BICUBIC       = $0004;
 
 type

@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.TimerThread, ABL.Core.BaseQueue, ABL.Core.BaseThread, ABL.Core.ThreadQueue, SysUtils,
-  {$IFNDEF FPC}PsAPI,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} ABL.Core.Debug, SyncObjs;
+  {$IFNDEF FPC}PsAPI,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} ABL.Core.Debug, SyncObjs, ABL.Core.ThreadItem;
 
 type
   TThreadController=class(TTimerThread)
@@ -25,6 +25,7 @@ type
     constructor Create; reintroduce;
     function CheckForAllEmpty: boolean;
     function GetStructure: string;
+    function ItemByName(AName: string): TThreadItem;
     function ThreadByName(AName: string): TBaseThread;
     function QueueByName(AName: string): TBaseQueue;
     property LogMem: Cardinal read GetLogMem write SetLogMem;
@@ -192,18 +193,30 @@ begin
   end;
 end;
 
+function TThreadController.ItemByName(AName: string): TThreadItem;
+var
+  Item: TBaseQueue;
+begin
+  for Item in QueueList do
+    if (Item.Name=AName)and(Item.ClassName='TThreadItem') then
+    begin
+      result:=TThreadItem(Item);
+      exit;
+    end;
+  result:=TThreadItem.Create(AName);
+end;
+
 function TThreadController.QueueByName(AName: string): TBaseQueue;
 var
   Queue: TBaseQueue;
 begin
   for Queue in QueueList do
-    if Queue.Name=AName then
+    if (Queue.Name=AName)and(Queue.ClassName='TThreadQueue') then
     begin
       result:=Queue;
       exit;
     end;
-  Queue:=TThreadQueue.Create(AName);
-  result:=Queue;
+  result:=TThreadQueue.Create(AName);
 end;
 
 procedure TThreadController.SetLogMem(const Value: Cardinal);

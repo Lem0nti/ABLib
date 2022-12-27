@@ -1,19 +1,36 @@
-﻿unit ABL.VS.VSTypes;
+﻿unit ABL.VS.VSTypes;  
+
+{$IFDEF FPC}
+{$mode objfpc}{$H+}{$modeswitch advancedrecords}
+{$ENDIF}
 
 interface
 
-type
-  TABLImageType = (itBGR, itGray, itBit);
+uses
+  ABL.IO.IOTypes;
 
-  PDecodedFrame=^TDecodedFrame;
-  TDecodedFrame=record
-    Time: int64;
+type
+  TABLImageType = (itBGR, itGray, itBit, itGrayIntegral, itBitIntegral);
+
+  PImageDataHeader=^TImageDataHeader;
+  TImageDataHeader=record
+    TimedDataHeader: TTimedDataHeader;
     Width,Height: Word;
     Left,Top: Word;
     ImageType: TABLImageType;
-    Data: Pointer;
+    FlipMarker: boolean;
+    Reserved0: Word;
+    Reserved1: integer;
+    function Data: Pointer;
   end;
 
 implementation
+
+{ TImageDataHeader }
+
+function TImageDataHeader.Data: Pointer;
+begin
+  result:=Pointer(NativeUInt(@Self)+SizeOf(TImageDataHeader));
+end;
 
 end.

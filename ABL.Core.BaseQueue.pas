@@ -22,6 +22,7 @@ type
   public
     constructor Create(AName: string=''); override;
     destructor Destroy; override;
+    procedure Clear; virtual; abstract;
     function Count: Integer; virtual;
     function Pop: Pointer; virtual; abstract;
     procedure Push(AItem: Pointer); virtual; abstract;

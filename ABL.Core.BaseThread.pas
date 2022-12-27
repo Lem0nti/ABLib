@@ -25,9 +25,6 @@ type
     FLastExec: TDateTime;
     FInputQueue, FOutputQueue: TBaseQueue;
     iCounterPerMSec, Time100: int64;
-    {$IFDEF FPC}
-    procedure ClearData(AData: Pointer); virtual; abstract;
-    {$ENDIF}
     procedure IncreaseIteration(ATime: int64);
     procedure Execute; virtual; abstract;
     procedure Start; virtual;
@@ -145,7 +142,7 @@ end;
 
 function TBaseThread.InputQueue: TBaseQueue;
 begin
-  result:=FInputQueue
+  result:=FInputQueue;
 end;
 
 function TBaseThread.OutputQueue: TBaseQueue;

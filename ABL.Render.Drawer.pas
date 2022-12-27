@@ -3,10 +3,15 @@
 interface
 
 uses
-  ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics, Windows, DateUtils;
+  ABL.Core.BaseObject, ABL.VS.VSTypes, SyncObjs, Types, ABL.Core.Debug, SysUtils, Graphics,
+  {$IFDEF UNIX}Xlib, X, gtk2{$ELSE}Windows{$ENDIF}, DateUtils;
 
 type
+  {$IFDEF UNIX}
+  TDrawNotify = procedure (Display: PDisplay; Drawable: TDrawable; GC: TGC) of object;
+  {$ELSE}
   TDrawNotify = procedure (DC: HDC; Width, Height: integer) of object;
+  {$ENDIF}
 
   TDrawer=class(TBaseObject)
   private
@@ -17,8 +22,13 @@ type
     FOnDraw: TDrawNotify;
     FShowTime: boolean;
     FVerticalMirror: boolean;
-    LastPicture: PDecodedFrame;
+    LastPicture: Pointer;
     SkipThru: TDateTime;
+    {$IFDEF UNIX}
+    FDisplay: PDisplay;
+    FImage: PXImage;
+    {$ENDIF}
+    ScaledBuff: Pointer;
     function GetShowTime: boolean;
     procedure SetShowTime(const Value: boolean);
     function GetVerticalMirror: boolean;
@@ -30,9 +40,9 @@ type
     function GetOnDraw: TDrawNotify;
     procedure SetOnDraw(const Value: TDrawNotify);
   public
-    constructor Create(AHandle: THandle; AName: string = ''); reintroduce;
+    constructor Create(AName: string = ''); reintroduce;
     destructor Destroy; override;
-    function Draw(ADecodedFrame: PDecodedFrame): integer;
+    function Draw(ImageData: PImageDataHeader): integer;
     procedure SetHandle(const Value: THandle);
     property CameraName: string read GetCameraName write SetCameraName;
     property FocusRect: TRect read GetFocusRect write SetFocusRect;
@@ -45,72 +55,152 @@ implementation
 
 { TDrawer }
 
-constructor TDrawer.Create(AHandle: THandle; AName: string);
+constructor TDrawer.Create(AName: string);
+{$IFDEF UNIX}
+var
+  screen: integer;
+  visual: PVisual;
+{$ENDIF}
 begin
   inherited Create(AName);
   SkipThru:=0;
   LastPicture:=nil;
   FVerticalMirror:=true;
-  SetHandle(AHandle);
+  FHandle:=0;
   FShowTime:=false;
+  GetMem(ScaledBuff,16000000);
+  {$IFDEF UNIX}
+  FDisplay:=XOpenDisplay(nil);
+  screen:=DefaultScreen(FDisplay);
+  visual:=DefaultVisual(FDisplay,screen);
+  FImage:=XCreateImage(FDisplay,visual,24,ZPixmap,0,PChar(scaledBuff),100,100,32,0);
+  {$ELSE}
   Font:=TFont.Create;
+  {$ENDIF}
 end;
 
 destructor TDrawer.Destroy;
 begin
+  {$IFDEF UNIX}
+  XCloseDisplay(FDisplay);
+  {$ELSE}
   Font.Free;
+  {$ENDIF}
+  FreeMem(ScaledBuff);
   inherited;
 end;
 
-function TDrawer.Draw(ADecodedFrame: PDecodedFrame): integer;
+function TDrawer.Draw(ImageData: PImageDataHeader): integer;
 var
+  {$IFDEF UNIX}
+  attr: PXWindowAttributes;
+  tmpStatus: integer;
+  gc: TGC;
+  Widget: PGtkWidget;
+  {$ELSE}
   bmpinfo: BITMAPINFO;
   drawDC: HDC;
+  {$ENDIF}
   ppRect: TRect;
-  x,y,Offset: integer;
+  x,y,RectWidth,RectHeight,tmpX,tmpY: integer;
   wh,hh: Real;
   lRatio: Double;
   src: TRect;
   OutText: string;
+  ByteFrom,ByteTo: PByte;
+  Offset,OffsetFrom: Cardinal;
 begin
   result:=0;
   if FHandle>0 then
   begin
     try
+      {$IFDEF UNIX}
+      FImage^.bitmap_unit:= 24;
+      FImage^.bitmap_pad:= 24;
+      FImage^.depth:= 24;
+      FImage^.bits_per_pixel:= 24;
+      {$ELSE}
       ZeroMemory(@bmpinfo,sizeof(bmpinfo));
       bmpinfo.bmiHeader.biSize:=sizeof(bmpinfo.bmiHeader);
       bmpinfo.bmiHeader.biPlanes:=1;
       bmpinfo.bmiHeader.biBitCount:=24;
       bmpinfo.bmiHeader.biCompression:=BI_RGB;
+      {$ENDIF}
       FLock.Enter;
       try
+        {$IFDEF UNIX}
+        Widget:=PGtkWidget(FHandle);
+        if Widget^.window = nil then
+          exit;
+        RectWidth:=Widget^.allocation.width;
+        RectHeight:=Widget^.allocation.height;
+        if RectWidth>2560 then
+            RectWidth:=2560
+        else if RectWidth mod 4>0 then
+            RectWidth:=RectWidth+4-RectWidth mod 4;
+        if RectHeight>1440 then
+            RectHeight:=1440;
+        FImage^.width:=RectWidth;
+        FImage^.height:=RectHeight;
+        FImage^.bytes_per_line:=RectWidth*3;
+        {$ELSE}
         GetWindowRect(FHandle,ppRect);
-        if (ppRect.Width>0) and (ppRect.Height>0) then
+        RectWidth:=ppRect.Width;
+        RectHeight:=ppRect.Height;
+        if RectWidth>2560 then
+            RectWidth:=2560
+        else if RectWidth mod 4>0 then
+            RectWidth:=RectWidth+4-RectWidth mod 4;
+        if RectHeight>1440 then
+            RectHeight:=1440;
+        {$ENDIF}
+        if (RectWidth>0) and (RectHeight>0) then
         begin
-          while ppRect.Width mod 4 > 0 do
-            ppRect.Width:=ppRect.Width+1;
-          if (ADecodedFrame.Width>ppRect.Width) or (ADecodedFrame.Height>ppRect.Height) then
+          while RectWidth mod 4 > 0 do
+            RectWidth:=RectWidth+1;        
+          wh:=ImageData^.Width/RectWidth;
+          hh:=ImageData^.Height/RectHeight;
+          if (ImageData^.Width<>RectWidth) or (ImageData^.Height<>RectHeight) then
           begin
-            wh:=ADecodedFrame.Width/ppRect.Width;
-            hh:=ADecodedFrame.Height/ppRect.Height;
             Offset:=0;
-            for y := 0 to ppRect.Height-1 do
-              for x := 0 to ppRect.Width-1 do
+            FillChar(scaledBuff^,255,RectWidth*RectHeight*3);
+            ByteFrom:=ImageData^.Data;
+            ByteTo:=scaledBuff;
+            for y := 0 to RectHeight-1 do
+              for x := 0 to RectWidth-1 do
               begin
-                Move(PByte(NativeUInt(ADecodedFrame.Data)+(Round(y*hh)*ADecodedFrame.Width+Round(x*wh))*3)^,
-                    PByte(NativeUInt(ADecodedFrame.Data)+Offset*3)^,3);
+                tmpY:=Round(hh*y);
+                if tmpY>ImageData^.Height-1 then
+                    tmpY:=ImageData^.Height-1;
+                tmpX:=Round(wh*x);
+                if tmpX>ImageData^.Width-1 then
+                    tmpX:=ImageData^.Width-1;
+                OffsetFrom:=(tmpY*ImageData^.Width+tmpX)*3;
+                Move(PByte(NativeUInt(ByteFrom)+OffsetFrom)^,PByte(NativeUInt(ByteTo)+Offset*3)^,3);
                 inc(Offset);
               end;
-            ADecodedFrame.Width:=ppRect.Width;
-            ADecodedFrame.Height:=ppRect.Height;
-          end;
-          bmpinfo.bmiHeader.biWidth:=ADecodedFrame.Width;
-          bmpinfo.bmiHeader.biSizeImage:=ADecodedFrame.Width*ADecodedFrame.Height*3;
-          bmpinfo.bmiHeader.biHeight:=-ADecodedFrame.Height;
+//            ImageData^.Width:=ppRect.Width;
+//            ImageData^.Height:=ppRect.Height;
+          end
+          else
+            Move(ImageData^.Data^,scaledBuff^,RectWidth*RectHeight*3);
+          {$IFDEF UNIX}
+          XSynchronize(FDisplay, true);
+          gc:=XCreateGC(FDisplay, FHandle, 0,nil);
+          XPutImage(FDisplay, FHandle, gc, FImage, 0, 0, 0, 0, RectWidth, RectHeight);
+          if assigned(FOnDraw) then
+            FOnDraw(FDisplay, FHandle, gc);
+          XFreeGC(FDisplay, gc);
+          {$ELSE}
+          bmpinfo.bmiHeader.biWidth:=RectWidth;
+          bmpinfo.bmiHeader.biSizeImage:=RectWidth*RectHeight*3;
+          if ImageData^.FlipMarker then
+            bmpinfo.bmiHeader.biHeight:=-RectHeight
+          else
+            bmpinfo.bmiHeader.biHeight:=RectHeight;
           drawDC:=GetDC(FHandle);
           try
-            StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ADecodedFrame.Width,ADecodedFrame.Height,ADecodedFrame.Data,
-                bmpinfo,DIB_RGB_COLORS,SRCCOPY);
+            StretchDIBits(drawDC,0,0,RectWidth,RectHeight,0,0,RectWidth,RectHeight,scaledBuff,bmpinfo,DIB_RGB_COLORS,SRCCOPY);
             SetBkMode(drawDC,TRANSPARENT);
             lRatio:=1080/ppRect.Width;
             // Динамический подбор размера шрифта к разрешению экрана
@@ -123,15 +213,15 @@ begin
             src.Bottom:=ppRect.Height;
             src.Right:=ppRect.Width-src.Left;
             if FCameraName<>'' then
-              DrawText(drawDC,FCameraName,Length(FCameraName),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_LEFT);
+              DrawText(drawDC,PChar(FCameraName),Length(FCameraName),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_LEFT);
             if FShowTime then
             begin
-              if (ADecodedFrame.Time>2641367261872)or(ADecodedFrame.Time<0) then
-                SendErrorMsg('TDrawer.Draw 124: invalid time - '+IntToStr(ADecodedFrame.Time))
+              if (ImageData^.TimedDataHeader.Time>2641367261872)or(ImageData^.TimedDataHeader.Time<0) then
+                SendErrorMsg('TDrawer.Draw 131: invalid time - '+IntToStr(ImageData^.TimedDataHeader.Time))
               else
               begin
-                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ADecodedFrame.Time));
-                DrawText(drawDC,OutText,Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
+                OutText:=DateTimeToStr(IncMilliSecond(UnixDateDelta,ImageData^.TimedDataHeader.Time));
+                DrawText(drawDC,PChar(OutText),Length(OutText),src,DT_NOCLIP or DT_TOP or DT_SINGLELINE or DT_RIGHT);
               end;
             end;
             if FFocusRect.Left>0 then
@@ -141,6 +231,7 @@ begin
           finally
             ReleaseDC(FHandle,drawDC);
           end;
+          {$ENDIF}
         end;
       finally
         FLock.Leave;

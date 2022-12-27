@@ -40,9 +40,6 @@ type
     NTime,FLastFrameTime: int64;
     function GetLastFrameTime: int64;
   protected
-    {$IFDEF FPC}
-    procedure ClearData(AData: Pointer); override;
-    {$ENDIF}
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     SPSPPSFrame_7_8: TBytes;
@@ -70,25 +67,25 @@ end;
 procedure TRTSPParser.DoExecute(var AInputData: Pointer;
   var AResultData: Pointer);
 var
-  ReadedData,ResultData: PDataFrame;
+  ReadedData: PTimedDataHeader;
+  TimedDataHeader: TTimedDataHeader;
   DataPassed,OldDataPassed,EHLOffset: Cardinal;
   RTSPHeader: TRTSPHeader;
   PayloadType,Byte_1,Byte_0,x,CSRCCount,NRI,Byte_PayLoad,PacketType,FrameType: byte;
   EndMarker,AssertMarker: boolean;
-  EHL,Payload,Sequence,DataSize: word;
-  q: integer;
+  EHL,Payload,DataSize: word;
+  //Sequence: word;
+  q,tmpDataSize: integer;
   AStringForLog: string;
   tmpLTimeStamp: TTimeStamp;
+  tmpResultData: Pointer;
 begin
   DataPassed:=0;
   try
-    ReadedData:=PDataFrame(AInputData);
-    try
-      SetLength(InputBuffer,length(InputBuffer)+ReadedData^.Size);
-      Move(ReadedData^.Data^,InputBuffer[length(InputBuffer)-ReadedData^.Size],ReadedData^.Size);
-    finally
-      FreeMem(ReadedData^.Data);
-    end;
+    ReadedData:=PTimedDataHeader(AInputData);
+    tmpDataSize:=ReadedData^.DataHeader.Size-SizeOf(TTimedDataHeader);
+    SetLength(InputBuffer,length(InputBuffer)+tmpDataSize);
+    Move(ReadedData^.Data^,InputBuffer[length(InputBuffer)-tmpDataSize],tmpDataSize);
     while DataPassed<length(InputBuffer) do
     begin
       if Terminated then
@@ -124,8 +121,8 @@ begin
             end
             else
               EHL:=0;
-            move(InputBuffer[DataPassed+2],Sequence,2);
-            Sequence:=htons(Sequence);
+//            move(InputBuffer[DataPassed+2],Sequence,2);
+//            Sequence:=htons(Sequence);
             //адрес равен 12+CSRCCount*4+x*4+x*EHL
             Payload:=12+(CSRCCount+x)*4+x*EHL;
             if DataPassed+Payload<length(InputBuffer) then
@@ -156,7 +153,6 @@ begin
                       tmpLTimeStamp := DateTimeToTimeStamp(now);
                       NTime:=tmpLTimeStamp.Date*Int64(MSecsPerDay)+tmpLTimeStamp.Time-UnixTimeStart;
                     end;
-                      //NTime:=ReadedData^.Time;
                     if (OldPacketType<>28) or (PacketType<>28) then  //если PacketType=28, то только для первого такого пакета
                     begin
                       SetLength(CurFrame,length(CurFrame)+3);
@@ -183,43 +179,39 @@ begin
                       //отправить дальше
                       if assigned(FOutputQueue) then
                       begin
-                        New(ResultData);
-                        ResultData^.Size:=length(CurFrame);
-                        ResultData^.Reserved:=0;
+                        Move(AInputData^,TimedDataHeader,SizeOf(TTimedDataHeader));
+                        TimedDataHeader.DataHeader.Size:=SizeOf(TTimedDataHeader)+length(CurFrame);
                         //если фрейм 5, и без 7 и 8, то послать их
                         if CurFrame[3]=101 then  //$65
                         begin
                           if length(SPSPPSFrame_7_8)>0 then
                           begin
-                            ResultData^.Size:=ResultData^.Size+length(SPSPPSFrame_7_8);
-                            GetMem(ResultData^.Data,ResultData^.Size);
-                            Move(SPSPPSFrame_7_8[0],ResultData^.Data^,length(SPSPPSFrame_7_8));
-                            Move(CurFrame[0],PByte(NativeUInt(ResultData^.Data)+NativeUInt(length(SPSPPSFrame_7_8)))^,length(CurFrame));
+                            TimedDataHeader.DataHeader.Size:=TimedDataHeader.DataHeader.Size+length(SPSPPSFrame_7_8);
+                            GetMem(tmpResultData,TimedDataHeader.DataHeader.Size);
+                            Move(SPSPPSFrame_7_8[0],PByte(NativeUInt(tmpResultData)+SizeOf(TTimedDataHeader))^,length(SPSPPSFrame_7_8));
+                            Move(CurFrame[0],PByte(NativeUInt(tmpResultData)+NativeUInt(length(SPSPPSFrame_7_8))+SizeOf(TTimedDataHeader))^,length(CurFrame));
                           end
                           else
                           begin
                             SendErrorMsg('TRTSPParser('+FName+').DoExecute 200: нет SPS и PPS кадров');
                             SubThread.Terminate;
-                            Dispose(ResultData);
                             exit;
                           end;
                         end
                         else
                         begin
                           //скопировать
-                          GetMem(ResultData^.Data,ResultData^.Size);
-                          Move(CurFrame[0],ResultData^.Data^,ResultData^.Size);
+                          GetMem(tmpResultData,TimedDataHeader.DataHeader.Size);
+                          Move(CurFrame[0],PByte(NativeUInt(tmpResultData)+SizeOf(TTimedDataHeader))^,length(CurFrame));
                         end;
                         if Terminated then
                           exit;
-                        ResultData^.Time:=NTime;
-                        Lock;
+                        TimedDataHeader.Time:=NTime;
+                        Move(TimedDataHeader,tmpResultData^,SizeOf(TTimedDataHeader));
+                        FLock.Enter;
                         FLastFrameTime:=NTime;
-                        Unlock;
-                        if assigned(FOutputQueue) then
-                          FOutputQueue.Push(ResultData)  // так а не через аутпутдата, потому что на один пакет может быть несколько кадров
-                        else //нет ничего
-                          SubThread.Terminate;
+                        FLock.Leave;
+                        FOutputQueue.Push(tmpResultData);  // так а не через аутпутдата, потому что на один пакет может быть несколько кадров
                       end;
                       SetLength(CurFrame,0);
                       NTime:=0;
@@ -335,16 +327,5 @@ begin
     FLock.Leave;
   end;
 end;
-
-{$IFDEF FPC}
-procedure TRTSPParser.ClearData(AData: Pointer);
-var
-  DataFrame: PDataFrame;
-begin
-  DataFrame:=PDataFrame(AData);
-  FreeMem(DataFrame^.Data);
-  Dispose(DataFrame);
-end;
-{$ENDIF}
 
 end.

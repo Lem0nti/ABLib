@@ -8,6 +8,7 @@ uses
 type
   TThreadQueue=class(TBaseQueue)
   public
+    procedure Clear; override;
     function Pop: Pointer; override;
     procedure Push(AItem: Pointer); override;
   end;
@@ -15,6 +16,24 @@ type
 implementation
 
 { TThreadQueue }
+
+procedure TThreadQueue.Clear;
+var
+  tmpData: Pointer;
+begin
+  FLock.Enter;
+  try
+    while Count>0 do
+    begin
+      tmpData:=Queue.Pop;
+      FreeMem(tmpData);
+    end;
+    FWaitItemsEvent.ResetEvent;
+    FWaitEmptyItems.SetEvent;
+  finally
+    FLock.Leave;
+  end;
+end;
 
 function TThreadQueue.Pop: Pointer;
 begin
