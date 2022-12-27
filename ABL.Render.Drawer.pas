@@ -56,9 +56,11 @@ implementation
 { TDrawer }
 
 constructor TDrawer.Create(AName: string);
+{$IFDEF UNIX}
 var
   screen: integer;
   visual: PVisual;
+{$ENDIF}
 begin
   inherited Create(AName);
   SkipThru:=0;
@@ -100,12 +102,13 @@ var
   drawDC: HDC;
   {$ENDIF}
   ppRect: TRect;
-  x,y,Offset,OffsetFrom,RectWidth,RectHeight,tmpX,tmpY: integer;
+  x,y,RectWidth,RectHeight,tmpX,tmpY: integer;
   wh,hh: Real;
   lRatio: Double;
   src: TRect;
   OutText: string;
   ByteFrom,ByteTo: PByte;
+  Offset,OffsetFrom: Cardinal;
 begin
   result:=0;
   if FHandle>0 then
@@ -176,8 +179,8 @@ begin
                 Move(PByte(NativeUInt(ByteFrom)+OffsetFrom)^,PByte(NativeUInt(ByteTo)+Offset*3)^,3);
                 inc(Offset);
               end;
-            ImageData^.Width:=ppRect.Width;
-            ImageData^.Height:=ppRect.Height;
+//            ImageData^.Width:=ppRect.Width;
+//            ImageData^.Height:=ppRect.Height;
           end
           else
             Move(ImageData^.Data^,scaledBuff^,RectWidth*RectHeight*3);
@@ -189,15 +192,15 @@ begin
             FOnDraw(FDisplay, FHandle, gc);
           XFreeGC(FDisplay, gc);
           {$ELSE}
-          bmpinfo.bmiHeader.biWidth:=ImageData^.Width;
-          bmpinfo.bmiHeader.biSizeImage:=ImageData^.Width*ImageData^.Height*3;
+          bmpinfo.bmiHeader.biWidth:=RectWidth;
+          bmpinfo.bmiHeader.biSizeImage:=RectWidth*RectHeight*3;
           if ImageData^.FlipMarker then
-            bmpinfo.bmiHeader.biHeight:=-ImageData^.Height
+            bmpinfo.bmiHeader.biHeight:=-RectHeight
           else
-            bmpinfo.bmiHeader.biHeight:=ImageData^.Height;
+            bmpinfo.bmiHeader.biHeight:=RectHeight;
           drawDC:=GetDC(FHandle);
           try
-            StretchDIBits(drawDC,0,0,ppRect.Width,ppRect.Height,0,0,ImageData^.Width,ImageData^.Height,ImageData^.Data,bmpinfo,DIB_RGB_COLORS,SRCCOPY);
+            StretchDIBits(drawDC,0,0,RectWidth,RectHeight,0,0,RectWidth,RectHeight,scaledBuff,bmpinfo,DIB_RGB_COLORS,SRCCOPY);
             SetBkMode(drawDC,TRANSPARENT);
             lRatio:=1080/ppRect.Width;
             // Динамический подбор размера шрифта к разрешению экрана

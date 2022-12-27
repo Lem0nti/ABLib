@@ -25,14 +25,15 @@ type
     IdTCPClient: TIdTCPClient;
     tsVS_Render: TTabSheet;
     pnlVideo: TPanel;
-    leRTSPLink: TLabeledEdit;
-    bGo: TBitBtn;
     pnlLeftTop: TPanel;
     pnlRightTop: TPanel;
     pnlLeftBottom: TPanel;
     pnlRightBottom: TPanel;
     pnlRight: TPanel;
     pnlBottom: TPanel;
+    Panel1: TPanel;
+    bGo: TBitBtn;
+    leRTSPLink: TLabeledEdit;
     procedure bCreateClick(Sender: TObject);
     procedure bSendClick(Sender: TObject);
     procedure bSendTCPClick(Sender: TObject);
@@ -237,6 +238,9 @@ begin
     ImageCutter.Free;
   if assigned(IfMotionLeft) then
     IfMotionLeft.Free;
+  if assigned(IfMotionRight) then
+    IfMotionRight.Free;
+  Sleep(200);
   if assigned(LocalBinarization) then
   begin
     LocalBinarization.Stop;

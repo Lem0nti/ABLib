@@ -49,7 +49,7 @@ procedure TImageCutter.DoExecute(var AInputData, AResultData: Pointer);
 var
   DecodedFrame,OutputFrame: PImageDataHeader;
   AbsRect, ACutRect: TRect;
-  y,q,hl,tmpDataSize: integer;
+  y,q,tmpDataSize: integer;
   tmpOutputQueue: TBaseQueue;
   BytesPerPixel: byte;
   tmpData: Pointer;
@@ -57,7 +57,6 @@ begin
   DecodedFrame:=AInputData;
   if DecodedFrame^.ImageType in [itBGR,itGray] then
   begin
-    q:=0;
     FLock.Enter;
     try
       for q := 0 to high(ReceiverList) do

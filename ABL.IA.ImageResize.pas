@@ -37,8 +37,8 @@ var
   DecodedFrame, OutputFrame: PImageDataHeader;
   tmpWidth, tmpHeight: word;
   wh,hh: Extended;
-  OffsetTo,OffsetFrom,x,y: integer;
-  sz: Cardinal;
+  x,y: integer;
+  OffsetTo,OffsetFrom,sz: Cardinal;
   BytesPerPixel: byte;
 begin
   DecodedFrame:=AInputData;

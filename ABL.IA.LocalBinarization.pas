@@ -50,12 +50,13 @@ var
   x,y,xFrom,xTo,yFrom,yTo: integer;
   RGBArrayFrom: PRGBArray;
   ByteArrayFrom: PByteArray;
-  Neighbor,WholeSquare,PixelOffset,CurrentByte: integer;
+  WholeSquare,PixelOffset: integer;
   tmpRadius,bInc,BytesPerPixel: byte;
   tmpOffset: ShortInt;
   DecValue: Extended;
   CurrentBit: SmallInt;
   BW: PByte;
+  Neighbor,CurrentByte: Cardinal;
 begin
   DecodedFrame:=AInputData;
   if DecodedFrame^.ImageType in [itBGR,itGray] then

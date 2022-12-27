@@ -74,7 +74,7 @@ var
   PayloadType,Byte_1,Byte_0,x,CSRCCount,NRI,Byte_PayLoad,PacketType,FrameType: byte;
   EndMarker,AssertMarker: boolean;
   EHL,Payload,DataSize: word;
-  Sequence: word;
+  //Sequence: word;
   q,tmpDataSize: integer;
   AStringForLog: string;
   tmpLTimeStamp: TTimeStamp;
