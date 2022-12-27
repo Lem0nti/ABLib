@@ -9,7 +9,7 @@ object MainFM: TMainFM
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnResize = FormResize
-  LCLVersion = '2.0.0.4'
+  LCLVersion = '2.2.4.0'
   WindowState = wsMaximized
   object pnlLeft: TPanel
     Left = 0
@@ -83,7 +83,7 @@ object MainFM: TMainFM
     TabOrder = 2
     object eLink: TEdit
       Left = 85
-      Height = 29
+      Height = 23
       Top = 4
       Width = 529
       Align = alCustom
@@ -91,7 +91,6 @@ object MainFM: TMainFM
       OnChange = eLinkChange
       OnKeyDown = eLinkKeyDown
       TabOrder = 0
-      Text = 'rtsp://admin:a0w2j5b61!@192.168.2.3:554/stream1'
     end
     object bGo: TButton
       Left = 4
