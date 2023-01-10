@@ -610,11 +610,11 @@ begin
   begin
     authSeq:=AnsiString(GenerateAuthString(Link.Username,Link.Password,realm,string(AMethod),string(AURL),nonce));
     result:=SendReceive(AMethod+' '+AURL+' RTSP/1.0'#13#10+ht+'CSeq: '+CSeq+#13#10'Authorization: '+authSeq+#13#10'User-Agent: '+
-        AnsiString(USER_AGENT)+#13#10#13#10,AMethod<>'SET_PARAMETER');
+        AnsiString(USER_AGENT)+#13#10#13#10,(AMethod<>'SET_PARAMETER')and(AMethod<>'TEARDOWN'));
   end
   else
     result:=SendReceive(AMethod+' '+AURL+' RTSP/1.0'#13#10+ht+'CSeq: '+CSeq+#13#10'User-Agent: '+AnsiString(USER_AGENT)+#13#10#13#10,
-        AMethod<>'SET_PARAMETER');
+        (AMethod<>'SET_PARAMETER')and(AMethod<>'TEARDOWN'));
   //авторизация?
   if pos('401',copy(result,1,32))>0 then
   begin
@@ -742,18 +742,14 @@ begin
 end;
 
 procedure TRTSPReceiver.SendTeardown;
-var
-  StrNum: string;
 begin
   try
-    StrNum:='749';
     if assigned(LogicPing) then
     begin
       LogicPing.FParent:=nil;
       LogicPing.Stop;
       LogicPing:=nil;
     end;
-    StrNum:='756';
     SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
     TCPReader.Stop;
   except on e: Exception do
@@ -762,13 +758,10 @@ begin
 end;
 
 procedure TRTSPReceiver.SetActive(const Value: boolean);
-var
-  StrNum: string;
 begin
   FLock.Enter;
   try
     try
-      StrNum:='771';
       if Value then
       begin
         if FConnectionString='' then
@@ -780,12 +773,9 @@ begin
         end;
       end
       else
-      begin
-        StrNum:='784';
         SendTeardown;
-      end;
     except on e: Exception do
-      SendErrorMsg('TRTSPReceiver.SetActive 788, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TRTSPReceiver.SetActive 782: '+e.ClassName+' - '+e.Message);
     end;
   finally
     FLock.Leave;
