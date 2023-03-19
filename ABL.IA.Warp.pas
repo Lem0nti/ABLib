@@ -45,8 +45,8 @@ begin
   FWarpRect[2].y:=10000;
   FWarpRect[2].x:=0;
   FWarpRect[2].y:=10000;
-  FWidth=0;
-  FHeight=0;
+  FWidth:=0;
+  FHeight:=0;
   Start;
 end;
 

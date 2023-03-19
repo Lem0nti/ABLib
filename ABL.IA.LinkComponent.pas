@@ -51,8 +51,8 @@ var
   begin
     Inc(RDepth);
     Offset:=AY*FCurImage.Width+AX;
-    CurByte=Offset div 8;
-    CurBit=Offset mod 8;
+    CurByte:=Offset div 8;
+    CurBit:=Offset mod 8;
     if RDepth>=MaxRDepth then
     begin
       if RDepth=MaxRDepth then
@@ -62,7 +62,7 @@ var
     else if (PictureData[CurByte] shr CurBit) and 1 = 0 then
     begin
       PictureData[CurByte]:=PictureData[CurByte] or (1 shl CurBit);
-      tmpClusterPoint:=tmpClusterPoint+Point(AX,AY);
+      tmpClusterPoint:=tmpClusterPoint+[Point(AX,AY)];
       if tmpCluster.Rect.Left>AX then
         tmpCluster.Rect.Left:=AX
       else if tmpCluster.Rect.Right<AX then
@@ -103,11 +103,10 @@ begin
   FCurImage:=AInputData;
   if FCurImage.ImageType=itBit then
   begin
-    PictureData=FCurImage.Data;
+    PictureData:=FCurImage.Data;
     FLock.Enter;
     tmpMinSize:=FMinSize;
     FLock.Leave;
-    new(tmpCluster);
     ClusterTips:=TQueue<TPoint>.Create;
     try
       for y:=0 to FCurImage.Height-1 do
@@ -115,25 +114,25 @@ begin
         begin
           if FTerminated then
             exit;
-          Offset=y*FCurImage.Width+x;
-          CurByte=Offset div 8;
-          CurBit=Offset mod 8;
+          Offset:=y*FCurImage.Width+x;
+          CurByte:=Offset div 8;
+          CurBit:=Offset mod 8;
           //текущий пиксель чёрный?
           if (PictureData[CurByte] shr CurBit) and 1 = 0 then
           begin
             tmpCluster.Rect:=Rect(10000,10000,0,0);
             ClusterTips.Clear;
             ClusterTips.Enqueue(Point(x,y)); // добавить в массив текущие ху
-            while length(ClusterTips)>0 do
+            while ClusterTips.Count>0 do
             begin
-              RDepth = 0;
+              RDepth:=0;
               p:=ClusterTips.Dequeue;
               Check(p.x, p.y);
             end;
             k:=length(tmpClusterPoint);
             if (tmpCluster.Rect.Width>=tmpMinSize)and(tmpCluster.Rect.Height>=tmpMinSize)and(k>tmpMinSize*3) then
             begin
-              tmpDataSize = SizeOf(TTimedDataHeader)+SizeOf(TArea)+k*sizeof(TPoint);
+              tmpDataSize:=SizeOf(TTimedDataHeader)+SizeOf(TArea)+k*sizeof(TPoint);
               GetMem(ResultData,tmpDataSize);
               TimedDataHeader:=AResultData;
               TimedDataHeader.DataHeader.Magic:=16961;
