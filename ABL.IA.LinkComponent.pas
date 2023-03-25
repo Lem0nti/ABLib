@@ -4,7 +4,7 @@ interface
 
 uses
   ABL.Core.DirectThread, ABL.Core.BaseQueue, ABL.VS.VSTypes, Types, ABL.IA.IATypes, SysUtils,
-  Generics.Collections, ABL.IO.IOTypes;
+  Generics.Collections, ABL.IO.IOTypes, SyncObjs;
 
 type
   TLinkComponent=class(TDirectThread)
@@ -41,7 +41,6 @@ var
   tmpClusterPoint: array of TPoint;
   ClusterTips: TQueue<TPoint>;
   RDepth,k: integer;
-  BitsFrom: Pointer;
   Offset,CurByte,CurBit: integer;
   p: TPoint;
   TimedDataHeader: PTimedDataHeader;
