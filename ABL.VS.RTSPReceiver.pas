@@ -50,15 +50,17 @@ type
     procedure Connect;
     function CSeq: AnsiString;
     function GenerateAuthString(AUsername, APassword, ARealm, AMethod, AUri, ANonce: string): string;
+    function GetActive: boolean;
+    function GetOutputQueue: TBaseQueue;
+    function GetConnectionString: string;
     function SendDescribe: boolean;
     procedure SendPlay;
     function SendReceive(AText: AnsiString; Receive: boolean = true): string;
     function SendReceiveMethod(AMethod, AURL, AHeadersText: AnsiString): string;
     function SendSetup: boolean;
-    function GetActive: boolean;
-    function GetConnectionString: string;
     procedure SetActive(const Value: boolean);
     procedure SetConnectionString(const Value: string);
+    procedure SetOutputQueue(Queue: TBaseQueue);
     procedure SetThisLastError(ALastError: string);
   public
     Link: TURI;
@@ -70,9 +72,9 @@ type
     function ReadSize: Cardinal;
     function SendSetParameter: string;
     procedure SendTeardown;
-    procedure SetOutputQueue(Queue: TBaseQueue);
     property Active: boolean read GetActive write SetActive;
     property ConnectionString: string read GetConnectionString write SetConnectionString;
+    property OutputQueue: TBaseQueue read GetOutputQueue write SetOutputQueue;
   end;
 
 {$IFDEF MSWINDOWS}
@@ -324,6 +326,11 @@ begin
   finally
     Unlock;
   end;
+end;
+
+function TRTSPReceiver.GetOutputQueue: TBaseQueue;
+begin
+  result:=RTSPParser.OutputQueue;
 end;
 
 function TRTSPReceiver.LastError: string;
