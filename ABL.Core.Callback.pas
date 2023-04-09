@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Core.BaseQueue, SysUtils;
+  ABL.Core.DirectThread, ABL.Core.BaseQueue, SysUtils, SyncObjs;
 
 type
   TDoExecuteCallbackMethod = procedure(var AInputData: Pointer) of object;
