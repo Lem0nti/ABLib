@@ -91,7 +91,7 @@ begin
         avcodec_decode_video2(VideoContext, frame, @got_picture, pkt);
         if got_picture=1 then
         begin
-          if CFrame^.Reserved=0 then
+          if CFrame^.Reserved<>1 then
           begin
             if (VideoContext^.width <> PrevWidth) and assigned(m_OutPicture) then
             begin

@@ -47,11 +47,17 @@ var
   ResultData: Pointer;
 
   procedure Check(AX,AY: Word);
+  var
+    q,w,e: integer;
+    tmpPoint: TPoint;
   begin
     Inc(RDepth);
     Offset:=AY*FCurImage.Width+AX;
     CurByte:=Offset div 8;
     CurBit:=Offset mod 8;
+    q:=RDepth;
+    w:=MaxRDepth;
+    e:=length(tmpClusterPoint);
     if RDepth>=MaxRDepth then
     begin
       if RDepth=MaxRDepth then
@@ -60,40 +66,44 @@ var
     //текущий пиксель чёрный?
     else if (PictureData[CurByte] shr CurBit) and 1 = 0 then
     begin
-      PictureData[CurByte]:=PictureData[CurByte] or (1 shl CurBit);
-      tmpClusterPoint:=tmpClusterPoint+[Point(AX,AY)];
-      if tmpCluster.Rect.Left>AX then
-        tmpCluster.Rect.Left:=AX
-      else if tmpCluster.Rect.Right<AX then
-        tmpCluster.Rect.Right:=AX;
-      if tmpCluster.Rect.Top>AY then
-        tmpCluster.Rect.Top:=AY
-      else if tmpCluster.Rect.Bottom<AY then
-        tmpCluster.Rect.Bottom:=AY;
-      if AX>0 then
-      begin
-        Check(AX-1,AY);
-        if AY<FCurImage.Height-1 then
-          Check(AX-1,AY+1);
-      end;
-      if AY>0 then
-      begin
-        Check(AX,AY-1);
+//      try
+        PictureData[CurByte]:=PictureData[CurByte] or (1 shl CurBit);
+        tmpClusterPoint:=tmpClusterPoint+[Point(AX,AY)];
+        if tmpCluster.Rect.Left>AX then
+          tmpCluster.Rect.Left:=AX
+        else if tmpCluster.Rect.Right<AX then
+          tmpCluster.Rect.Right:=AX;
+        if tmpCluster.Rect.Top>AY then
+          tmpCluster.Rect.Top:=AY
+        else if tmpCluster.Rect.Bottom<AY then
+          tmpCluster.Rect.Bottom:=AY;
         if AX>0 then
-          Check(AX-1,AY-1);
-      end;
-      if AX<FCurImage.Width-1 then
-      begin
-        Check(AX+1,AY);
+        begin
+          Check(AX-1,AY);
+          if AY<FCurImage.Height-1 then
+            Check(AX-1,AY+1);
+        end;
         if AY>0 then
-          Check(AX+1,AY-1);
-      end;
-      if AY<FCurImage.Height-1 then
-      begin
-        Check(AX,AY+1);
+        begin
+          Check(AX,AY-1);
+          if AX>0 then
+            Check(AX-1,AY-1);
+        end;
         if AX<FCurImage.Width-1 then
-          Check(AX+1,AY+1);
-      end;
+        begin
+          Check(AX+1,AY);
+          if AY>0 then
+            Check(AX+1,AY-1);
+        end;
+        if AY<FCurImage.Height-1 then
+        begin
+          Check(AX,AY+1);
+          if AX<FCurImage.Width-1 then
+            Check(AX+1,AY+1);
+        end;
+//      except on e: Exception do
+//        q:=q;
+//      end;
     end;
     Dec(RDepth);
   end;
@@ -119,6 +129,7 @@ begin
           //текущий пиксель чёрный?
           if (PictureData[CurByte] shr CurBit) and 1 = 0 then
           begin
+//            tmpClusterPoint:=tmpClusterPoint+[Point(x,y)];
             tmpCluster.Rect:=Rect(10000,10000,0,0);
             ClusterTips.Clear;
             ClusterTips.Enqueue(Point(x,y)); // добавить в массив текущие ху
@@ -131,9 +142,9 @@ begin
             k:=length(tmpClusterPoint);
             if (tmpCluster.Rect.Width>=tmpMinSize)and(tmpCluster.Rect.Height>=tmpMinSize)and(k>tmpMinSize*3) then
             begin
-              tmpDataSize:=SizeOf(TTimedDataHeader)+SizeOf(TArea)+k*sizeof(TPoint);
+              tmpDataSize:=SizeOf(TTimedDataHeader)+SizeOf(TArea)+k*sizeof(TPoint)+16;  //почему?
               GetMem(ResultData,tmpDataSize);
-              TimedDataHeader:=AResultData;
+              TimedDataHeader:=ResultData;
               TimedDataHeader.DataHeader.Magic:=16961;
               TimedDataHeader.DataHeader.Version:=0;
               TimedDataHeader.DataHeader.DataType:=1;

@@ -25,8 +25,9 @@ type
     FPicture: Pointer;
     procedure DoExecute; override;
   public
-    constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
+    constructor Create(AInputQueue: TBaseQueue; AName: string = ''); reintroduce;
     destructor Destroy; override;
+    function CurPicture: Pointer;
     procedure SetSize(AWidth,AHeight: Word);
     procedure UpdateSizes;
     property Handle: THandle read GetHandle write SetHandle;
@@ -39,16 +40,27 @@ implementation
 
 { TTimerRender }
 
-constructor TTimerRender.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
+constructor TTimerRender.Create(AInputQueue: TBaseQueue; AName: string);
 var
   ImageDataHeader: PImageDataHeader;
 begin
-  inherited Create(AInputQueue,AOutputQueue,AName);
+  inherited Create(AInputQueue,nil,AName);
   FDrawer:=TDrawer.Create(ClassName+'_'+AName+'_Drawer_'+IntToStr(FID));
   GetMem(FPicture,SizeOf(TImageDataHeader)+8);
-  FHandle=0;
+  FHandle:=0;
   SetSize(1920,1080);
-  FInterval=0;
+  FInterval:=100;
+end;
+
+function TTimerRender.CurPicture: Pointer;
+begin
+  FLock.Enter;
+  try
+    GetMem(result,PImageDataHeader(FPicture).TimedDataHeader.DataHeader.Size);
+    Move(FPicture^,result^,PImageDataHeader(FPicture).TimedDataHeader.DataHeader.Size);
+  finally
+    FLock.Leave;
+  end;
 end;
 
 destructor TTimerRender.Destroy;
@@ -110,7 +122,8 @@ begin
   FLock.Enter;
   try
     FHandle:=Value;
-    UpdateSizes;
+    if assigned(FDrawer) then
+      FDrawer.SetHandle(FHandle);
   finally
     FLock.Leave;
   end;
@@ -161,19 +174,19 @@ var
   tmpDataSize: integer;
   tmpWidth,tmpHeight: Word;
 begin
-  tmpWidth:=ImageDataHeader.Width;
-  tmpHeight:=ImageDataHeader.Height;
+  tmpWidth:=PImageDataHeader(FPicture).Width;
+  tmpHeight:=PImageDataHeader(FPicture).Height;
   tmpDataSize:=SizeOf(TImageDataHeader)+tmpWidth*tmpHeight*3;
-  FPicture=ReallocMemory(FPicture,tmpDataSize);
+  FPicture:=ReallocMemory(FPicture,tmpDataSize);
   ImageDataHeader:=FPicture;
   ImageDataHeader.TimedDataHeader.DataHeader.Magic:=16961;
-  ImageDataHeader.TimedDataHeader.DataHeader.Version=0;
-  ImageDataHeader.TimedDataHeader.DataHeader.DataType=2;
-  ImageDataHeader.TimedDataHeader.DataHeader.Size=tmpDataSize;
+  ImageDataHeader.TimedDataHeader.DataHeader.Version:=0;
+  ImageDataHeader.TimedDataHeader.DataHeader.DataType:=2;
+  ImageDataHeader.TimedDataHeader.DataHeader.Size:=tmpDataSize;
   ImageDataHeader.Left:=0;
   ImageDataHeader.Top:=0;
   ImageDataHeader.ImageType:=itBGR;
-  ImageDataHeader.FlipMarker:=false;
+  ImageDataHeader.FlipMarker:=true;
 end;
 
 end.
