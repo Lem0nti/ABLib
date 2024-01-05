@@ -25,8 +25,6 @@ implementation
 
 { TCallback }
 
-{ TCallback }
-
 constructor TCallback.Create(AInputQueue: TBaseQueue; AName: string);
 begin
   inherited Create(AInputQueue,nil,AName);

@@ -198,8 +198,6 @@ var
   ImageData: PImageDataHEader;
 begin
   ImageData:=AInputData;
-  //Move(AInputData,ImageData,SizeOf(TImageDataHeader));
-  //ImageData.Data:=Pointer(NativeUInt(AInputData)+SizeOf(TImageDataHeader));
   FLock.Enter;
   tmpResultType:=FResultType;
   FLock.Leave;

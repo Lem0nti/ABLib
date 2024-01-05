@@ -32,7 +32,7 @@ implementation
 
 function TRGBTriple.Brightness: Byte;
 begin
-  result:=round(rgbtRed*0.2989+rgbtGreen*0.5870+rgbtRed*0.1140);
+  result:=round(rgbtRed*0.2989+rgbtGreen*0.5870+rgbtBlue*0.1140);
 end;
 
 end.
