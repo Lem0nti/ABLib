@@ -83,7 +83,7 @@ begin
           srcQuad[3].y:=Round(FWarpRect[3].Y*ImageDataHeader.Height/10000);
           if srcQuad[0].x+srcQuad[0].y=0 then
             exit;
-          //высчитываем размеры итоговой картинки
+          //ГўГ»Г±Г·ГЁГІГ»ГўГ ГҐГ¬ Г°Г Г§Г¬ГҐГ°Г» ГЁГІГ®ГЈГ®ГўГ®Г© ГЄГ Г°ГІГЁГ­ГЄГЁ
           tmpX:=abs(srcQuad[0].X-srcQuad[1].X);
           tmpY:=abs(srcQuad[0].Y-srcQuad[1].Y);
           FWidth:=Round(sqrt(tmpX*tmpX+tmpY*tmpY));
@@ -96,41 +96,41 @@ begin
           tmpX:=abs(srcQuad[2].X-srcQuad[1].X);
           tmpY:=abs(srcQuad[2].Y-srcQuad[1].Y);
           FHeight:=max(FHeight,Round(sqrt(tmpX*tmpX+tmpY*tmpY)));
-          //размеры результата должны быть кратны 4
+          //Г°Г Г§Г¬ГҐГ°Г» Г°ГҐГ§ГіГ«ГјГІГ ГІГ  Г¤Г®Г«Г¦Г­Г» ГЎГ»ГІГј ГЄГ°Г ГІГ­Г» 4
           while FWidth mod 4 = 0 do
             inc(FWidth);
-          //дискретные шаги по периметру выделенного четырёхугольника
-          //дельты для левой границы
+          //Г¤ГЁГ±ГЄГ°ГҐГІГ­Г»ГҐ ГёГ ГЈГЁ ГЇГ® ГЇГҐГ°ГЁГ¬ГҐГІГ°Гі ГўГ»Г¤ГҐГ«ГҐГ­Г­Г®ГЈГ® Г·ГҐГІГ»Г°ВёГµГіГЈГ®Г«ГјГ­ГЁГЄГ 
+          //Г¤ГҐГ«ГјГІГ» Г¤Г«Гї Г«ГҐГўГ®Г© ГЈГ°Г Г­ГЁГ¶Г»
           exLeft.X:=(srcQuad[3].X-srcQuad[0].X)/FHeight;
           exLeft.Y:=(srcQuad[3].Y-srcQuad[0].Y)/FHeight;
-          //дельты для правой границы
+          //Г¤ГҐГ«ГјГІГ» Г¤Г«Гї ГЇГ°Г ГўГ®Г© ГЈГ°Г Г­ГЁГ¶Г»
           exRight.X:=(srcQuad[2].X-srcQuad[1].X)/FHeight;
           exRight.Y:=(srcQuad[2].Y-srcQuad[1].Y)/FHeight;
           SetLength(FromOffset,FWidth*FHeight);
           for tmpStepY := 0 to FHeight-1 do
           begin
-            //левый конец для текущей строки
+            //Г«ГҐГўГ»Г© ГЄГ®Г­ГҐГ¶ Г¤Г«Гї ГІГҐГЄГіГ№ГҐГ© Г±ГІГ°Г®ГЄГЁ
             StartPixel.X:=srcQuad[0].X+Round(tmpStepY*exLeft.X);
             StartPixel.Y:=srcQuad[0].Y+Round(tmpStepY*exLeft.Y);
-            //правый конец для текущей строки
+            //ГЇГ°Г ГўГ»Г© ГЄГ®Г­ГҐГ¶ Г¤Г«Гї ГІГҐГЄГіГ№ГҐГ© Г±ГІГ°Г®ГЄГЁ
             EndPixel.X:=srcQuad[1].X+Round(tmpStepY*exRight.X);
             EndPixel.Y:=srcQuad[1].Y+Round(tmpStepY*exRight.Y);
-            //шаг Х
+            //ГёГ ГЈ Г•
             exX:=(EndPixel.X-StartPixel.X)/FWidth;
-            //шаг У
+            //ГёГ ГЈ Г“
             exY:=(EndPixel.Y-StartPixel.Y)/FWidth;
             for tmpStepX := 0 to FWidth-1 do
             begin
-              //дельта Х
+              //Г¤ГҐГ«ГјГІГ  Г•
               FromPixel.X:=StartPixel.X+Round(tmpStepX*exX);
               FromPixel.Y:=StartPixel.Y+Round(tmpStepX*exY);
-              FromOffset[tmpStepY*FWidth+tmpStepX]=(FromPixel.y*ImageDataHeader.Width+FromPixel.x)*BytesPerPixel;
+              FromOffset[tmpStepY*FWidth+tmpStepX]:=(FromPixel.y*ImageDataHeader.Width+FromPixel.x)*BytesPerPixel;
             end;
           end;
         end;
         tmpDataSize:=SizeOf(TImageDataHeader)+FWidth*FHeight*BytesPerPixel;
         GetMem(AResultData,tmpDataSize);
-        Move(AInputData,AResultData^,SizeOf(TImageDataHeader));
+        Move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
         ImageDataHeader:=AResultData;
         ImageDataHeader.Width:=FWidth;
         ImageDataHeader.Height:=FHeight;
@@ -146,9 +146,9 @@ begin
           move(PixelFrom[FromOffset[Offset]],PixelTo[ToOffset],BytesPerPixel)
         else
           FillChar(PixelTo[ToOffset],BytesPerPixel,255);
-        ToOffset=ToOffset+BytesPerPixel;
+        ToOffset:=ToOffset+BytesPerPixel;
       end;
-      ImageDataHeader.TimedDataHeader.DataHeader.Size=sizeof(TImageDataHeader)+tmpDataSize;
+      ImageDataHeader.TimedDataHeader.DataHeader.Size:=sizeof(TImageDataHeader)+tmpDataSize;
     end;
   except on E: Exception do
     SendErrorMsg('TWarp.DoExecute 154: '+e.ClassName+' - '+e.Message);
