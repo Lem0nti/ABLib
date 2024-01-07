@@ -3,7 +3,8 @@
 interface
 
 uses
-  ABL.Core.DirectThread, Graphics, Windows, ABL.Core.BaseQueue, ABL.VS.VSTypes, SysUtils, Classes;
+  ABL.Core.DirectThread, Graphics, Windows, ABL.Core.BaseQueue, ABL.VS.VSTypes, SysUtils,
+  Classes, ABL.Core.ThreadQueue;
 
 type
   TBMPFileHeader = Packed record
@@ -42,7 +43,19 @@ type
     procedure SaveAsBmp(ImageDataHeader: PImageDataHeader; FileName: TFileName);
   end;
 
+procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; FileName: TFileName);
+
 implementation
+
+var
+  DebugBMPSaver: TBMPSaver;
+
+procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; FileName: TFileName);
+begin
+  if not assigned(DebugBMPSaver) then
+    DebugBMPSaver:=TBMPSaver.Create(TThreadQueue.Create('DebugBMPSaver'));
+  DebugBMPSaver.SaveAsBmp(ImageDataHeader,FileName);
+end;
 
 { TBMPSaver }
 
@@ -58,7 +71,7 @@ var
   aw3: integer;
   BMPHeader: TBMPHeader;
   BMPFileHeader: TBMPFileHeader;
-  FileSize,row,q: integer;
+  row,q: integer;
   FileStream: TFileStream;
   buf: array of byte;
   ByteArray: PByteArray;
@@ -81,6 +94,8 @@ begin
   BMPHeader.biHeight:=SaveInstruction.ImageDataHeader.Height;
   BMPHeader.biBitCount:=24;
   BMPHeader.biCompression:=0;
+  if FileExists(SaveInstruction.FileName) then
+    DeleteFile(SaveInstruction.FileName);
   FileStream:=TFileStream.Create(SaveInstruction.FileName,fmCreate);
   try
     //пишем заголовок
@@ -89,21 +104,21 @@ begin
     //буфер пикселей
     SetLength(buf,aw3);
     FillChar(buf[0],aw3,0);
-    if SaveInstruction.ImageDataHeader.FlipMarker=1 then
+    if SaveInstruction.ImageDataHeader.FlipMarker then
       // сначала нижняя строка
-      row:=0
+      row:=SaveInstruction.ImageDataHeader.Height-1
     else
       // сначала верхняя строка
-      row:=SaveInstruction.ImageDataHeader.Height-1;
+      row:=0;
     ByteArray:=SaveInstruction.ImageDataHeader.Data;
     for q := 0 to SaveInstruction.ImageDataHeader.Height-1 do
     begin
-      Move(ByteArray[row*SaveInstruction.ImageDataHeader.Width],buf[0],SaveInstruction.ImageDataHeader.Width*3);
-      FileStream.Write(buf,length(buf));
-      if SaveInstruction.ImageDataHeader.FlipMarker=1 then
-        Inc(row)
+      Move(ByteArray[row*SaveInstruction.ImageDataHeader.Width*3],buf[0],SaveInstruction.ImageDataHeader.Width*3);
+      FileStream.Write(buf[0],length(buf));
+      if SaveInstruction.ImageDataHeader.FlipMarker then
+        Dec(row)
       else
-        Dec(row);
+        Inc(row);
     end;
   finally
     FileStream.Free;
@@ -119,7 +134,8 @@ begin
    SaveInstruction.FileName:=FileName;
    GetMem(tmpData,ImageDataHeader.TimedDataHeader.DataHeader.Size);
    Move(ImageDataHeader^,tmpData^,ImageDataHeader.TimedDataHeader.DataHeader.Size);
-   FInputQueue.Push(tmpData);
+   SaveInstruction.ImageDataHeader:=tmpData;
+   FInputQueue.Push(SaveInstruction);
 end;
 
 end.

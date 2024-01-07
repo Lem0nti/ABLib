@@ -55,9 +55,6 @@ var
     Offset:=AY*FCurImage.Width+AX;
     CurByte:=Offset div 8;
     CurBit:=Offset mod 8;
-    q:=RDepth;
-    w:=MaxRDepth;
-    e:=length(tmpClusterPoint);
     if RDepth>=MaxRDepth then
     begin
       if RDepth=MaxRDepth then
@@ -147,8 +144,8 @@ begin
               TimedDataHeader.DataHeader.Size:=tmpDataSize;
               TimedDataHeader.Time:=FCurImage.TimedDataHeader.Time;
               tmpCluster.Cnt:=k;
-              Move(tmpCluster,TimedDataHeader.Data^,SizeOf(TArea));
               ResultArray:=TimedDataHeader.Data;
+              Move(tmpCluster,ResultArray[0],SizeOf(TArea));
               Move(tmpClusterPoint[0],ResultArray[SizeOf(TArea)],k*SizeOf(TPoint));
               if assigned(FOutputQueue) then
                 FOutputQueue.Push(ResultData);
