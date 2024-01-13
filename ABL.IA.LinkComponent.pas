@@ -47,9 +47,6 @@ var
   ResultData: Pointer;
 
   procedure Check(AX,AY: Word);
-  var
-    q,w,e: integer;
-    tmpPoint: TPoint;
   begin
     Inc(RDepth);
     Offset:=AY*FCurImage.Width+AX;

@@ -47,8 +47,9 @@ var
   DecodedFrame: PImageDataHeader;
   rcWidth,rcHeight: Real;
   tmpRows,tmpCols: word;
-  CurMotion,tmpEthalon: TByteArray;
+  CurMotion,tmpEthalon: array[0..65535] of Byte;
   Can: boolean;
+  tmpSensivity: byte;
 
   procedure ApplyAsEthalon;
   var
@@ -81,6 +82,7 @@ begin
     FLock.Enter;
     tmpRows:=FRows;
     tmpCols:=FCols;
+    tmpSensivity:=FSensivity;
     FLock.Leave;
     rcWidth:=DecodedFrame.Width/tmpCols;
     rcHeight:=DecodedFrame.Height/tmpRows;
@@ -105,7 +107,7 @@ begin
             begin
               CurMotion[MZone]:=1;
               tmpEthalon[MZone]:=tmpData[OffsetFrom];
-              if abs(Ethalon[MZone]-tmpEthalon[MZone])>FSensivity then
+              if abs(Ethalon[MZone]-tmpEthalon[MZone])>tmpSensivity then
               begin
                 CurMotion[MZone]:=2;
                 Can:=true;
