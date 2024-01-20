@@ -3,38 +3,50 @@
 interface
 
 uses
-  ABL.Core.BaseQueue;
+  ABL.Core.BaseQueue, SyncObjs;
 
 type
-  TDataNotify=procedure(var AData: Pointer) of object;
-
   TThreadItem=class(TBaseQueue)
-  private
-    FClearPrior: TDataNotify;
   protected
     PMain: Pointer;
   public
     constructor Create(AName: string = ''); override;
+    procedure Clear; override;
     function Count: Integer; override;
     function Pop: Pointer; override;
     procedure Push(AItem: Pointer); override;
-    property OnClearPrior: TDataNotify read FClearPrior write FClearPrior;
   end;
 
 implementation
 
 { TThreadItem }
 
+procedure TThreadItem.Clear;
+begin
+  FLock.Enter;
+  try
+    if assigned(PMain) then
+    begin
+      FreeMem(PMain);
+      PMain:=nil;
+      FWaitEmptyItems.SetEvent;
+      FWaitItemsEvent.ResetEvent;
+    end;
+  finally
+    FLock.Leave;
+  end;
+end;
+
 function TThreadItem.Count: Integer;
 begin
-  Lock;
+  FLock.Enter;
   try
     if assigned(PMain) then
       result:=1
     else
       result:=0;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 
@@ -42,42 +54,32 @@ constructor TThreadItem.Create(AName: string);
 begin
   inherited Create(AName);
   PMain:=nil;
-  FClearPrior:=nil;
 end;
 
 function TThreadItem.Pop: Pointer;
 begin
-  Lock;
+  FLock.Enter;
   try
     result:=PMain;
     PMain:=nil;
     FWaitEmptyItems.SetEvent;
     FWaitItemsEvent.ResetEvent;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 
 procedure TThreadItem.Push(AItem: Pointer);
 begin
-  Lock;
+  FLock.Enter;
   try
     if assigned(PMain) then
-    begin
-      if assigned(FClearPrior) then
-        FClearPrior(PMain)
-      else
-        {$IFDEF FPC}
-        Freemem(PMain);
-        {$ELSE}
-        Dispose(PMain);
-        {$ENDIF}
-    end;
+      Freemem(PMain);
     PMain:=AItem;
     FWaitEmptyItems.ResetEvent;
     FWaitItemsEvent.SetEvent;
   finally
-    Unlock;
+    FLock.Leave;
   end;
 end;
 

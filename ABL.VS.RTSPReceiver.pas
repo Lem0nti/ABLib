@@ -50,19 +50,21 @@ type
     procedure Connect;
     function CSeq: AnsiString;
     function GenerateAuthString(AUsername, APassword, ARealm, AMethod, AUri, ANonce: string): string;
+    function GetActive: boolean;
+    function GetOutputQueue: TBaseQueue;
+    function GetConnectionString: string;
     function SendDescribe: boolean;
     procedure SendPlay;
     function SendReceive(AText: AnsiString; Receive: boolean = true): string;
     function SendReceiveMethod(AMethod, AURL, AHeadersText: AnsiString): string;
     function SendSetup: boolean;
-    function GetActive: boolean;
-    function GetConnectionString: string;
     procedure SetActive(const Value: boolean);
     procedure SetConnectionString(const Value: string);
+    procedure SetOutputQueue(Queue: TBaseQueue);
     procedure SetThisLastError(ALastError: string);
   public
     Link: TURI;
-    constructor Create(AOutputQueue: TThreadQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
+    constructor Create(AOutputQueue: TBaseQueue; AName: string = ''; AConnectionString: string = ''); reintroduce;
     destructor Destroy; override;
     procedure ChildCB(AChild: TBaseObject); override;
     function LastError: string;
@@ -70,9 +72,9 @@ type
     function ReadSize: Cardinal;
     function SendSetParameter: string;
     procedure SendTeardown;
-    procedure SetOutputQueue(Queue: TBaseQueue);
     property Active: boolean read GetActive write SetActive;
     property ConnectionString: string read GetConnectionString write SetConnectionString;
+    property OutputQueue: TBaseQueue read GetOutputQueue write SetOutputQueue;
   end;
 
 {$IFDEF MSWINDOWS}
@@ -82,7 +84,7 @@ var
 {$ENDIF}
 
 const
-  USER_AGENT = 'ABL.TRTSPReceiver 1.0.8';
+  USER_AGENT = 'ABL.TRTSPReceiver 1.2.0';
   SCommand: array [0..4] of String = ('DESCRIBE', 'PLAY', 'SET_PARAMETER', 'SETUP', 'TEARDOWN');
 
 implementation
@@ -119,11 +121,10 @@ procedure TLogicPing.Execute;
 var
   aStopped: TWaitResult;
   tmpResult: integer;
-  StrNum,tmpHost: string;
+  tmpHost: string;
 begin
   FreeOnTerminate:=true;
   try
-    StrNum:='125';
     tmpHost:=FParent.Link.Host;
     if FTimeOut<=10000 then
     begin
@@ -135,7 +136,6 @@ begin
           aStopped:=FWaitForStop.WaitFor(FTimeOut);
           if (aStopped=wrTimeOut) and assigned(FParent) then
           begin
-            StrNum:='136';
             try
               tmpResult:=StrToIntDef(FParent.SendSetParameter,0);
             except on e: Exception do
@@ -154,7 +154,7 @@ begin
           else
             break;
         except on e: Exception do
-          SendErrorMsg('TLogicPing.Execute 155, StrNum='+StrNum+', Terminated='+BoolToStr(Terminated,true)+' ('+tmpHost+'): '+e.ClassName+' - '+e.Message);
+          SendErrorMsg('TLogicPing.Execute 155, Terminated='+BoolToStr(Terminated,true)+' ('+tmpHost+'): '+e.ClassName+' - '+e.Message);
         end;
   finally
     Terminate;
@@ -255,7 +255,7 @@ begin
         {$IFDEF UNIX}'socket error '+IntToStr(FSocket){$ELSE}SysErrorMessage(WSAGetLastError){$ENDIF});
 end;
 
-constructor TRTSPReceiver.Create(AOutputQueue: TThreadQueue; AName, AConnectionString: string);
+constructor TRTSPReceiver.Create(AOutputQueue: TBaseQueue; AName, AConnectionString: string);
 begin
   inherited Create(AName);
   ThreadQueue:=TThreadQueue.Create(ClassName+'_'+AName+'_Reader2Parser_'+IntToStr(FID));
@@ -326,6 +326,11 @@ begin
   finally
     Unlock;
   end;
+end;
+
+function TRTSPReceiver.GetOutputQueue: TBaseQueue;
+begin
+  result:=RTSPParser.OutputQueue;
 end;
 
 function TRTSPReceiver.LastError: string;
@@ -511,28 +516,27 @@ begin
     SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 463: нет сессии')
   else
     try
-      StrNum:='498';
+      StrNum:='512';
       w:=SendReceiveMethod('PLAY',AnsiString(Link.GetFullURI),'Session: '+CurSession);
       if pos('200 OK',w)>0 then
       begin
-        SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 502: 200 OK');
+        SendDebugMsg('TRTSPReceiver.SendPlay ('+Link.GetFullURI+') 516: 200 OK');
         TCPReader.SetAcceptedSocket(FSocket);
-        StrNum:='504';
         if assigned(LogicPing) then
         begin
           try
             LogicPing.Stop;
           except on e: Exception do
-            SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 512, LogicPing.Stop: '+e.ClassName+' - '+e.Message);
+            SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 523, LogicPing.Stop: '+e.ClassName+' - '+e.Message);
           end;
         end;
-        StrNum:='513';
+        StrNum:='526';
         LogicPing:=TLogicPing.Create(self,PingInterval);
       end
       else
-        SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 519:'#13#10+w);
+        SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 530:'#13#10+w);
     except on e: Exception do
-      SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 522, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TRTSPReceiver.SendPlay ('+Link.Host+') 532, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
     end;
 end;
 
@@ -613,18 +617,42 @@ begin
   begin
     authSeq:=AnsiString(GenerateAuthString(Link.Username,Link.Password,realm,string(AMethod),string(AURL),nonce));
     result:=SendReceive(AMethod+' '+AURL+' RTSP/1.0'#13#10+ht+'CSeq: '+CSeq+#13#10'Authorization: '+authSeq+#13#10'User-Agent: '+
-        AnsiString(USER_AGENT)+#13#10#13#10,AMethod<>'SET_PARAMETER');
+        AnsiString(USER_AGENT)+#13#10#13#10,(AMethod<>'SET_PARAMETER')and(AMethod<>'TEARDOWN'));
   end
   else
     result:=SendReceive(AMethod+' '+AURL+' RTSP/1.0'#13#10+ht+'CSeq: '+CSeq+#13#10'User-Agent: '+AnsiString(USER_AGENT)+#13#10#13#10,
-        AMethod<>'SET_PARAMETER');
+        (AMethod<>'SET_PARAMETER')and(AMethod<>'TEARDOWN'));
   //авторизация?
   if pos('401',copy(result,1,32))>0 then
   begin
     if (Link.Username<>'')and(Link.Password<>'') then
     begin
       //васик или дигест
-      if pos('basic',LowerCase(result))>0 then
+      if pos('digest',LowerCase(result))>0 then
+      begin
+        w:=pos('digest realm',LowerCase(result));
+        if w>0 then
+        begin
+          realm:=copy(result,w+14,64);
+          w:=Pos('"',realm);
+          if w>0 then
+            delete(realm,w,64);
+          w:=pos('nonce',LowerCase(result));
+          if w>0 then
+          begin
+            nonce:=copy(result,w+7,64);
+            w:=pos('"',nonce);
+            if w>0 then
+              delete(nonce,w,64);
+            authSeq:=AnsiString(GenerateAuthString(Link.Username,Link.Password,realm,string(AMethod),string(AURL),nonce));
+          end
+          else
+            SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 613: отсутствует digest nonce');
+        end
+        else
+          SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 616: отсутствует digest realm');
+      end
+      else if pos('basic',LowerCase(result))>0 then
       begin
         {$IFDEF FPC}
         Base64MidStream:=TStringStream.Create(Link.Username+':'+Link.Password);
@@ -650,30 +678,6 @@ begin
         move(authSeq[1],ABytes[0],length(authSeq));
         authSeq:='Basic '+AnsiString(TNetEncoding.Base64.EncodeBytesToString(ABytes));
         {$ENDIF}
-      end
-      else if pos('digest',LowerCase(result))>0 then
-      begin
-        w:=pos('digest realm',LowerCase(result));
-        if w>0 then
-        begin
-          realm:=copy(result,w+14,64);
-          w:=Pos('"',realm);
-          if w>0 then
-            delete(realm,w,64);
-          w:=pos('nonce',LowerCase(result));
-          if w>0 then
-          begin
-            nonce:=copy(result,w+7,64);
-            w:=pos('"',nonce);
-            if w>0 then
-              delete(nonce,w,64);
-            authSeq:=AnsiString(GenerateAuthString(Link.Username,Link.Password,realm,string(AMethod),string(AURL),nonce));
-          end
-          else
-            SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 613: отсутствует digest nonce');
-        end
-        else
-          SendErrorMsg('TRTSPReceiver.SendReceiveMethod ('+Link.Host+') 616: отсутствует digest realm');
       end;
       if authSeq<>'' then
       begin
@@ -745,53 +749,40 @@ begin
 end;
 
 procedure TRTSPReceiver.SendTeardown;
-var
-  StrNum: string;
 begin
   try
-    StrNum:='737';
     if assigned(LogicPing) then
     begin
-      StrNum:='740';
       LogicPing.FParent:=nil;
       LogicPing.Stop;
       LogicPing:=nil;
     end;
-    StrNum:='745';
     SendReceiveMethod('TEARDOWN',AnsiString(Link.GetFullURI),'');
-    StrNum:='747';
     TCPReader.Stop;
   except on e: Exception do
-    SendErrorMsg('TRTSPReceiver.SendTeardown 750: '+e.ClassName+' - '+e.Message);
+    SendErrorMsg('TRTSPReceiver.SendTeardown 760: '+e.ClassName+' - '+e.Message);
   end;
 end;
 
 procedure TRTSPReceiver.SetActive(const Value: boolean);
-var
-  StrNum: string;
 begin
   FLock.Enter;
   try
     try
-      StrNum:='761';
       if Value then
       begin
         if FConnectionString='' then
-          SendErrorMsg('TRTSPReceiver::SetActive 765: no connection string')
+          SendErrorMsg('TRTSPReceiver::SetActive 775: no connection string')
         else
         begin
-          StrNum:='768';
           if not TCPReader.Active then
             Connect;
         end;
       end
       else
-      begin
-        StrNum:='775';
         SendTeardown;
-      end;
     except on e: Exception do
-      SendErrorMsg('TRTSPReceiver.SetActive 779, StrNum='+StrNum+': '+e.ClassName+' - '+e.Message);
+      SendErrorMsg('TRTSPReceiver.SetActive 782: '+e.ClassName+' - '+e.Message);
     end;
   finally
     FLock.Leave;

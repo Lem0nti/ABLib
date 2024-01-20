@@ -57,11 +57,7 @@ begin
                 SendErrorMsg('TDirectThread.Execute '+ClassName+'('+FName+') 57: нет получателя для результата DoExecute');
           finally
             if assigned(Mess) then
-              {$IFDEF FPC}
-              ClearData(Mess);
-              {$ELSE}
-              Dispose(Mess);
-              {$ENDIF}
+              FreeMem(Mess);
           end;
         end;
       end;

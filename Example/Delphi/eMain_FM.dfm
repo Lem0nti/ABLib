@@ -3,7 +3,7 @@ object MainFM: TMainFM
   Top = 0
   Caption = #1044#1077#1084#1086' ABLib'
   ClientHeight = 436
-  ClientWidth = 715
+  ClientWidth = 828
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,23 +11,22 @@ object MainFM: TMainFM
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  WindowState = wsMaximized
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object PageControl: TPageControl
     Left = 0
     Top = 0
-    Width = 715
+    Width = 828
     Height = 436
-    ActivePage = tsVS_Render
+    ActivePage = tsCore
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 635
-    ExplicitHeight = 408
+    ExplicitWidth = 715
     object tsCore: TTabSheet
       Caption = 'Core'
-      ExplicitWidth = 627
-      ExplicitHeight = 380
+      ExplicitWidth = 707
       object bCreate: TButton
         Left = 16
         Top = 8
@@ -40,14 +39,13 @@ object MainFM: TMainFM
       object mCoreLog: TMemo
         Left = 184
         Top = 10
-        Width = 512
+        Width = 625
         Height = 384
         Align = alCustom
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitWidth = 432
-        ExplicitHeight = 356
+        ExplicitWidth = 512
       end
       object bSend: TButton
         Left = 16
@@ -62,19 +60,17 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
-      ExplicitWidth = 627
-      ExplicitHeight = 380
+      ExplicitWidth = 707
       object mIOLog: TMemo
         Left = 192
         Top = 18
-        Width = 512
+        Width = 625
         Height = 384
         Align = alCustom
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 432
-        ExplicitHeight = 356
+        ExplicitWidth = 512
       end
       object leText: TLabeledEdit
         Left = 11
@@ -99,21 +95,21 @@ object MainFM: TMainFM
     object tsVS_Render: TTabSheet
       Caption = 'VS + Render + IA'
       ImageIndex = 2
-      ExplicitWidth = 627
-      ExplicitHeight = 380
+      ExplicitWidth = 707
       object pnlVideo: TPanel
-        Left = 16
-        Top = 56
-        Width = 673
-        Height = 338
-        Align = alCustom
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Left = 0
+        Top = 54
+        Width = 820
+        Height = 354
+        Align = alClient
         BevelOuter = bvNone
         Caption = 'pnlVideo'
         TabOrder = 0
         OnResize = pnlVideoResize
-        ExplicitWidth = 593
-        ExplicitHeight = 310
+        ExplicitLeft = 16
+        ExplicitTop = 56
+        ExplicitWidth = 673
+        ExplicitHeight = 338
         object pnlLeftTop: TPanel
           Left = 0
           Top = 0
@@ -168,27 +164,38 @@ object MainFM: TMainFM
           OnDblClick = pnlRightTopDblClick
         end
       end
-      object leRTSPLink: TLabeledEdit
-        Left = 88
-        Top = 16
-        Width = 440
-        Height = 21
-        EditLabel.Width = 71
-        EditLabel.Height = 13
-        EditLabel.Caption = 'RTSP '#1089#1089#1099#1083#1082#1072': '
-        LabelPosition = lpLeft
+      object Panel1: TPanel
+        Left = 0
+        Top = 0
+        Width = 820
+        Height = 54
+        Align = alTop
+        BevelOuter = bvNone
         TabOrder = 1
-        Text = 'rtsp://admin:a0w2j5b61!@192.168.2.3:554/stream1'
-        OnKeyDown = leRTSPLinkKeyDown
-      end
-      object bGo: TBitBtn
-        Left = 534
-        Top = 14
-        Width = 75
-        Height = 25
-        Caption = #1047#1072#1093#1074#1072#1090
-        TabOrder = 2
-        OnClick = bGoClick
+        ExplicitLeft = 336
+        ExplicitTop = -4
+        ExplicitWidth = 625
+        object bGo: TBitBtn
+          Left = 534
+          Top = 14
+          Width = 75
+          Height = 25
+          Caption = #1047#1072#1093#1074#1072#1090
+          TabOrder = 0
+          OnClick = bGoClick
+        end
+        object leRTSPLink: TLabeledEdit
+          Left = 88
+          Top = 16
+          Width = 440
+          Height = 21
+          EditLabel.Width = 71
+          EditLabel.Height = 13
+          EditLabel.Caption = 'RTSP '#1089#1089#1099#1083#1082#1072': '
+          LabelPosition = lpLeft
+          TabOrder = 1
+          OnKeyDown = leRTSPLinkKeyDown
+        end
       end
     end
   end

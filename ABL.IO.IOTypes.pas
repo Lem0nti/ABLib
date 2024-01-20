@@ -1,14 +1,21 @@
-﻿unit ABL.IO.IOTypes;
+﻿unit ABL.IO.IOTypes;     
+
+{$IFDEF FPC}
+{$mode objfpc}{$H+}{$modeswitch advancedrecords}
+{$ENDIF}
 
 interface
 
+uses
+  ABL.Core.CoreTypes;
+
 type
-  PDataFrame=^TDataFrame;
-  TDataFrame=record
+  PTimedDataHeader=^TTimedDataHeader;
+  TTimedDataHeader=record
+    DataHeader: TDataHeader;
     Time: int64;
-    Size: Cardinal;
-    Reserved: Byte;
-    Data: Pointer;
+    Reserved: Int64;
+    function Data: Pointer;
   end;
 
 const
@@ -19,5 +26,12 @@ const
   {$ENDIF}
 
 implementation
+
+{ TTimedDataHeader }
+
+function TTimedDataHeader.Data: Pointer;
+begin
+  result:=Pointer(NativeUInt(@Self)+SizeOf(TTimedDataHeader));
+end;
 
 end.

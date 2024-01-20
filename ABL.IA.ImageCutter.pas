@@ -13,13 +13,14 @@ type
 
   TImageCutter=class(TDirectThread)
   private
-    ReceiverList: TArray<TReceiverInfo>;
+    ReceiverList: array of TReceiverInfo;
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue: TBaseQueue; AName: string = ''); reintroduce;
     procedure AddReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
     procedure RemoveReceiver(AReceiver: TBaseQueue);
+    procedure UpdateReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
   end;
 
 implementation
@@ -46,51 +47,61 @@ end;
 
 procedure TImageCutter.DoExecute(var AInputData, AResultData: Pointer);
 var
-  DecodedFrame,OutputFrame: PDecodedFrame;
+  DecodedFrame,OutputFrame: PImageDataHeader;
   AbsRect, ACutRect: TRect;
-  y,q,hl: integer;
+  y,q,tmpDataSize: integer;
   tmpOutputQueue: TBaseQueue;
+  BytesPerPixel: byte;
+  tmpData: Pointer;
 begin
-  DecodedFrame:=PDecodedFrame(AInputData);
-  try
-    q:=0;
-    while true do
-    begin
-      tmpOutputQueue:=nil;
-      FLock.Enter;
-      hl:=high(ReceiverList);
-      if q<=hl then
+  DecodedFrame:=AInputData;
+  if DecodedFrame^.ImageType in [itBGR,itGray] then
+  begin
+    FLock.Enter;
+    try
+      for q := 0 to high(ReceiverList) do
       begin
         ACutRect:=ReceiverList[q].CutRect;
         tmpOutputQueue:=ReceiverList[q].Receiver;
-      end;
-      FLock.Leave;
-      if q>hl then
-        break
-      else
-      begin
+        if ACutRect.Left>ACutRect.Right then
+        begin
+          ACutRect.Left:=ACutRect.Right+ACutRect.Left;
+          ACutRect.Right:=ACutRect.Left-ACutRect.Right;
+          ACutRect.Left:=ACutRect.Left-ACutRect.Right;
+        end;
+        if ACutRect.Top>ACutRect.Bottom then
+        begin
+          ACutRect.Top:=ACutRect.Bottom+ACutRect.Top;
+          ACutRect.Bottom:=ACutRect.Top-ACutRect.Bottom;
+          ACutRect.Top:=ACutRect.Top-ACutRect.Bottom;
+        end;
         //превращаем относительный прямоугольник в конкретный
-        AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame.Width),Round((ACutRect.Top)/10000*DecodedFrame.Height),
-            Round(ACutRect.Right/10000*DecodedFrame.Width),Round((ACutRect.Bottom)/10000*DecodedFrame.Height));
+        AbsRect:=Rect(Round(ACutRect.Left/10000*DecodedFrame^.Width),Round((ACutRect.Top)/10000*DecodedFrame^.Height),
+            Round(ACutRect.Right/10000*DecodedFrame^.Width),Round((ACutRect.Bottom)/10000*DecodedFrame^.Height));
         while AbsRect.Width mod 4 > 0 do
           AbsRect.Width:=AbsRect.Width+1;
         if assigned(tmpOutputQueue) then
         begin
-          new(OutputFrame);
-          OutputFrame.Width:=AbsRect.Width;
-          OutputFrame.Height:=AbsRect.Height;
-          OutputFrame.Time:=DecodedFrame.Time;
-          GetMem(OutputFrame^.Data,OutputFrame.Width*OutputFrame.Height*3);
-          for y := AbsRect.Top to AbsRect.Bottom do
-            Move(PByte(NativeUInt(DecodedFrame.Data)+(y*DecodedFrame.Width+AbsRect.Left)*3)^,
-                PByte(NativeUInt(OutputFrame.Data)+((y-AbsRect.Top)*AbsRect.Width)*3)^,AbsRect.Width*3);
-          tmpOutputQueue.Push(OutputFrame);
+          if DecodedFrame^.ImageType=itBGR then
+            BytesPerPixel:=3
+          else
+            BytesPerPixel:=1;
+          tmpDataSize:=SizeOf(TImageDataHeader)+AbsRect.Width*AbsRect.Height*BytesPerPixel;
+          GetMem(tmpData,tmpDataSize);
+          Move(AInputData^,tmpData^,SizeOf(TImageDataHeader));
+          OutputFrame:=tmpData;
+          OutputFrame^.Width:=AbsRect.Width;
+          OutputFrame^.Height:=AbsRect.Height;
+          OutputFrame^.TimedDataHeader.DataHeader.Size:=tmpDataSize;
+          for y := AbsRect.Top to AbsRect.Bottom-1 do
+            Move(PByte(NativeUInt(DecodedFrame^.Data)+(y*DecodedFrame^.Width+AbsRect.Left)*BytesPerPixel)^,
+                PByte(NativeUInt(OutputFrame^.Data)+((y-AbsRect.Top)*AbsRect.Width)*BytesPerPixel)^,AbsRect.Width*BytesPerPixel);
+          tmpOutputQueue.Push(tmpData);
         end;
-        inc(q);
       end;
+    finally
+      FLock.Leave;
     end;
-  finally
-    FreeMem(DecodedFrame.Data);
   end;
 end;
 
@@ -103,7 +114,29 @@ begin
     for q := 0 to Length(ReceiverList)-1 do
       if ReceiverList[q].Receiver=AReceiver then
       begin
+        {$IFDEF UNIX}
+        Move(ReceiverList[q+1],ReceiverList[q],sizeof(TReceiverInfo)*(high(ReceiverList)-q));
+        setlength(ReceiverList,high(ReceiverList));
+        {$ELSE}
         Delete(ReceiverList,q,1);
+        {$ENDIF}
+        break;
+      end;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TImageCutter.UpdateReceiver(AReceiver: TBaseQueue; ACutRect: TRect);
+var
+  q: integer;
+begin
+  FLock.Enter;
+  try
+    for q := 0 to Length(ReceiverList)-1 do
+      if ReceiverList[q].Receiver=AReceiver then
+      begin
+        ReceiverList[q].CutRect:=ACutRect;
         break;
       end;
   finally

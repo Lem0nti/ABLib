@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   ABL.IA.ImageCutter, ABL.IA.IfMotion, ABL.IA.LocalBinarization, ABL.IA.FindDark,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, ABL.VS.FFMPEG,
-  ABL.VS.DecodedMultiplier, ABL.IA.ImageConverter, ABL.VS.DecodedItem, ABL.Core.BaseThread,
+  ABL.IA.ImageConverter, ABL.Core.BaseThread, ABL.Core.ThreadItem,
   ABL.Core.QueueMultiplier, ABL.Core.ThreadController, Vcl.ComCtrls, ABL.Render.DirectRender, ABL.IA.ImageResize,
   Vcl.StdCtrls, eDirect_Cl, eMessage, eTimer_Cl, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
   Vcl.ExtCtrls, ABL.IO.TCPReader, eTCPToLog_Cl, Vcl.Buttons, ABL.VS.VideoDecoder, ABL.Core.ThreadQueue;
@@ -25,14 +25,15 @@ type
     IdTCPClient: TIdTCPClient;
     tsVS_Render: TTabSheet;
     pnlVideo: TPanel;
-    leRTSPLink: TLabeledEdit;
-    bGo: TBitBtn;
     pnlLeftTop: TPanel;
     pnlRightTop: TPanel;
     pnlLeftBottom: TPanel;
     pnlRightBottom: TPanel;
     pnlRight: TPanel;
     pnlBottom: TPanel;
+    Panel1: TPanel;
+    bGo: TBitBtn;
+    leRTSPLink: TLabeledEdit;
     procedure bCreateClick(Sender: TObject);
     procedure bSendClick(Sender: TObject);
     procedure bSendTCPClick(Sender: TObject);
@@ -51,7 +52,7 @@ type
     RTSPReceiver: TRTSPReceiver;
     VideoDecoder: TVideoDecoder;
     Render,ResizeRender,LeftIfRender,RightIfRender,LocalRender,FindDarkRender: TDirectRender;
-    DecodedMultiplier: TDecodedMultiplier;
+    DecodedMultiplier: TQueueMultiplier;
     ImageResize: TImageResize;
     ImageCutter: TImageCutter;
     IfMotionLeft, IfMotionRight: TIfMotion;
@@ -59,7 +60,6 @@ type
     FindDark: TFindDark;
     icLocalBinarization,icFindDark: TImageConverter;
     procedure ABLThreadExecute(var Message: TMessage); message WM_ABL_THREAD_EXECUTED;
-    procedure Multiply(AInputData: Pointer; var AResultData: Pointer);
   public
     { Public declarations }
   end;
@@ -90,7 +90,6 @@ begin
   Timer1:=TABLTimer.Create(ThreadController.QueueByName('Direct1_Output'),ThreadController.QueueByName('Timer1_Output'),'Timer1');
   Timer1.Active:=true;
   Multiplier:=TQueueMultiplier.Create(ThreadController.QueueByName('Timer1_Output'),'Multiplier');
-  Multiplier.OnMultiply:=Multiply;
   Multiplier.AddReceiver(ThreadController.QueueByName('Direct2_Input'));
   Multiplier.AddReceiver(ThreadController.QueueByName('Timer2_Input'));
   Multiplier.Active:=true;
@@ -111,7 +110,7 @@ begin
     VideoDecoder:=TVideoDecoder.Create(ThreadController.QueueByName('Receiver_Output'),ThreadController.QueueByName('Decoder_Output'),
         AV_CODEC_ID_H264,'VideoDecoder');
   if not assigned(DecodedMultiplier) then
-    DecodedMultiplier:=TDecodedMultiplier.Create(ThreadController.QueueByName('Decoder_Output'),'DecodedMultiplier');
+    DecodedMultiplier:=TQueueMultiplier.Create(ThreadController.QueueByName('Decoder_Output'),'DecodedMultiplier');
   if not assigned(Render) then
   begin
     Render:=TDirectRender.Create('Render');
@@ -161,7 +160,7 @@ begin
   end;
   if not assigned(LocalBinarization) then
   begin
-    LocalBinarization:=TLocalBinarization.Create(TDecodedItem.Create('LocalBinarization_Input'),ThreadController.QueueByName('LocalBinarization_Output'),'LocalBinarization');
+    LocalBinarization:=TLocalBinarization.Create(TThreadItem.Create('LocalBinarization_Input'),ThreadController.QueueByName('LocalBinarization_Output'),'LocalBinarization');
     DecodedMultiplier.AddReceiver(LocalBinarization.InputQueue);
   end;
   if not assigned(icLocalBinarization) then
@@ -174,7 +173,7 @@ begin
   end;
   if not assigned(FindDark) then
   begin
-    FindDark:=TFindDark.Create(TDecodedItem.Create('FindDark_Input'),TDecodedItem.Create('FindDark_Output'),'FindDark');
+    FindDark:=TFindDark.Create(TThreadItem.Create('FindDark_Input'),TThreadItem.Create('FindDark_Output'),'FindDark');
     DecodedMultiplier.AddReceiver(FindDark.InputQueue);
   end;
   if not assigned(icFindDark) then
@@ -233,6 +232,15 @@ begin
     Sleep(100);
     DecodedMultiplier.Free;
   end;
+  if assigned(ImageResize) then
+    ImageResize.Free;
+  if assigned(ImageCutter) then
+    ImageCutter.Free;
+  if assigned(IfMotionLeft) then
+    IfMotionLeft.Free;
+  if assigned(IfMotionRight) then
+    IfMotionRight.Free;
+  Sleep(200);
   if assigned(LocalBinarization) then
   begin
     LocalBinarization.Stop;
@@ -242,7 +250,7 @@ begin
   if assigned(FindDark) then
   begin
     FindDark.Stop;
-    Sleep(100);
+    Sleep(200);
     FindDark.Free;
   end;
 end;
@@ -251,15 +259,6 @@ procedure TMainFM.leRTSPLinkKeyDown(Sender: TObject; var Key: Word; Shift: TShif
 begin
   if Key=13 then
     bGo.Click;
-end;
-
-procedure TMainFM.Multiply(AInputData: Pointer; var AResultData: Pointer);
-var
-  tmpString: PString;
-begin
-  New(tmpString);
-  setstring(tmpString^, PChar(PString(AInputData)^), length(PString(AInputData)^));
-  AResultData:=tmpString;
 end;
 
 procedure TMainFM.pnlRightTopDblClick(Sender: TObject);
