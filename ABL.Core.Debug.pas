@@ -179,6 +179,7 @@ var
   fn: TFileName;
   TheFileName: array[0..MAX_PATH] of char;
   tmpFileName: string;
+  ErrorCount: integer;
 begin
   FLock.Enter;
   try
@@ -189,26 +190,34 @@ begin
         if dk^.Value and (dk^.Name=ShortString(AKey)) then
         begin
           //ищем папку
-          try
-            fn:=ChangeFileExt(AFileName,'_log');
-            ForceDirectories(fn);
-            fn:=fn+'/'+FormatDateTime('YYYYMMDD',now)+ExtractFileExt(AFileName);
-            Assign(TxtFile,fn);
-            if not FileExists(fn) then
-              Rewrite(TxtFile)
-            else
-              Append(TxtFile);
-            FillChar(TheFileName, sizeof(TheFileName), #0);
-            {$IFDEF UNIX}
-            tmpFileName:=GetModuleFileName(get_caller_addr(get_frame));
-            {$ELSE}
-            GetModuleFileName(hInstance, TheFileName, sizeof(TheFileName));
-            tmpFileName:=trim(TheFileName);
-            {$ENDIF}
-            Writeln(TxtFile,AKey+' '+DateTimeToStr(now)+' '+ExtractFileName(tmpFileName)+' '+AMsg);
-            Close(TxtFile);
-          except
-          end;
+          ErrorCount:=0;
+          while ErrorCount<2 do
+            try
+              fn:=ChangeFileExt(AFileName,'_log');
+              ForceDirectories(fn);
+              fn:=fn+'/'+FormatDateTime('YYYYMMDD',now)+ExtractFileExt(AFileName);
+              Assign(TxtFile,fn);
+              if not FileExists(fn) then
+                Rewrite(TxtFile)
+              else
+                Append(TxtFile);
+              FillChar(TheFileName, sizeof(TheFileName), #0);
+              {$IFDEF UNIX}
+              tmpFileName:=GetModuleFileName(get_caller_addr(get_frame));
+              {$ELSE}
+              GetModuleFileName(hInstance, TheFileName, sizeof(TheFileName));
+              tmpFileName:=trim(TheFileName);
+              {$ENDIF}
+              Writeln(TxtFile,AKey+' '+DateTimeToStr(now)+' '+ExtractFileName(tmpFileName)+' '+AMsg);
+              Close(TxtFile);
+              break;
+            except on e: EInOutError do
+              if (e.ErrorCode=32) then
+              begin
+                Sleep(32);
+                Inc(ErrorCount);
+              end;
+            end;
           break;
         end;
     end;
