@@ -8,9 +8,9 @@ uses
 
 type
   {$IFDEF UNIX}
-  TDrawNotify = procedure (Display: PDisplay; Drawable: TDrawable; GC: TGC) of object;
+  TDrawNotify = procedure (Display: PDisplay; Drawable: TDrawable; GC: TGC; DateTime: int64) of object;
   {$ELSE}
-  TDrawNotify = procedure (DC: HDC; Width, Height: integer) of object;
+  TDrawNotify = procedure (DC: HDC; Width, Height: integer; DateTime: int64) of object;
   {$ENDIF}
 
   TDrawer=class(TBaseObject)
@@ -179,8 +179,6 @@ begin
                 Move(PByte(NativeUInt(ByteFrom)+OffsetFrom)^,PByte(NativeUInt(ByteTo)+Offset*3)^,3);
                 inc(Offset);
               end;
-//            ImageData^.Width:=ppRect.Width;
-//            ImageData^.Height:=ppRect.Height;
           end
           else
             Move(ImageData^.Data^,scaledBuff^,RectWidth*RectHeight*3);
@@ -227,7 +225,7 @@ begin
             if FFocusRect.Left>0 then
               DrawFocusRect(drawDC,FFocusRect);
             if assigned(FOnDraw) then
-              FOnDraw(drawDC,ppRect.Width,ppRect.Height);
+              FOnDraw(drawDC,ppRect.Width,ppRect.Height,ImageData^.TimedDataHeader.Time);
           finally
             ReleaseDC(FHandle,drawDC);
           end;

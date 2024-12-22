@@ -27,10 +27,10 @@ implementation
 constructor TOpening.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
 begin
   inherited Create(AName);
-  ThreadQueue:=TThreadQueue.Create('TClosing_'+AName+'_ED_'+IntToStr(FID));
-  Erosion:=TErosion.Create(AInputQueue,ThreadQueue,'TClosing_'+AName+'_Erosion_'+IntToStr(FID));
+  ThreadQueue:=TThreadQueue.Create('TOpening_'+AName+'_ED_'+IntToStr(FID));
+  Erosion:=TErosion.Create(AInputQueue,ThreadQueue,'TOpening_'+AName+'_Erosion_'+IntToStr(FID));
   Erosion.Parent:=Self;
-  Dilation:=TDilation.Create(ThreadQueue,AOutputQueue,'TClosing_'+AName+'_Dilation_'+IntToStr(FID));
+  Dilation:=TDilation.Create(ThreadQueue,AOutputQueue,'TOpening_'+AName+'_Dilation_'+IntToStr(FID));
   Dilation.Parent:=Self;
 end;
 

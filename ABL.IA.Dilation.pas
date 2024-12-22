@@ -10,10 +10,10 @@ type
   private
     tmpBuffer: Pointer;
   protected
-    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     destructor Destroy; override;
+    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   end;
 
 implementation

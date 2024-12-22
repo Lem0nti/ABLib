@@ -50,9 +50,9 @@ begin
     for y:=0 to ImageDataHeader.Height-1 do
       for x:=0 to ImageDataHeader.Width-1 do
       begin
-        Offset=y*ImageDataHeader.Width+x;
-        CurByte=Offset div 8;
-        CurBit=Offset mod 8;
+        Offset:=y*ImageDataHeader.Width+x;
+        CurByte:=Offset div 8;
+        CurBit:=Offset mod 8;
         //текущий пиксель чёрный?
         if (FromData[CurByte] shr CurBit) and 1 = 0 then
         begin

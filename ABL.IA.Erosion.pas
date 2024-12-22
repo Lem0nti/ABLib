@@ -10,10 +10,10 @@ type
   private
     tmpBuffer: Pointer;
   protected
-    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     destructor Destroy; override;
+    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   end;
 
 implementation
@@ -23,7 +23,7 @@ implementation
 constructor TErosion.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
 begin
   inherited Create(AInputQueue,AOutputQueue,AName);
-  GetMem(tmpBuffer,2048*2048);
+  GetMem(tmpBuffer,8192*8192);
   Start;
 end;
 
