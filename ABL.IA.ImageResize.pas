@@ -7,7 +7,7 @@ uses
   ABL.IA.IATypes;
 
 type
-  TResizeAlgorythm = (raHearHeighbour,raAverageBright);
+  TResizeAlgorythm = (raNearNeighbour,raAverageBright);
 
   TRGBWhole=record
     Red, Green, Blue, Count: integer;
@@ -23,10 +23,9 @@ type
     procedure SetWidth(const Value: word);
     function GetAlgorythm: TResizeAlgorythm;
     procedure SetAlgorythm(const Value: TResizeAlgorythm);
-  protected
-    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
+    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
     procedure SetSize(AWidth, AHeight: word);
     property Algorythm: TResizeAlgorythm read GetAlgorythm write SetAlgorythm;
     property Height: word read GetHeight write SetHeight;
@@ -40,7 +39,7 @@ implementation
 constructor TImageResize.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
 begin
   inherited Create(AInputQueue,AOutputQueue,AName);
-  FAlgorythm:=raHearHeighbour;
+  FAlgorythm:=raNearNeighbour;
   Active:=true;
 end;
 
@@ -94,7 +93,7 @@ begin
     begin
       if (DecodedFrame.Width>tmpWidth) or (DecodedFrame.Height>tmpHeight) then //надо ли уменьшать картинку
       begin
-        if tmpAlgorythm=raHearHeighbour then
+        if tmpAlgorythm=raNearNeighbour then
           for y:=0 to tmpHeight-1 do
             for x:=0 to tmpWidth-1 do
             begin

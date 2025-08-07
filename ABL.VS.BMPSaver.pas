@@ -45,6 +45,7 @@ type
 
 procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; FileName: TFileName); overload;
 procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; CutRect: TRect; FileName: TFileName); overload;
+procedure ABLSaveAsBMP(PointArray: array of TPoint; FileName: TFileName); overload;
 
 implementation
 
@@ -91,6 +92,36 @@ begin
   end;
 end;
 
+procedure ABLSaveAsBMP(PointArray: array of TPoint; FileName: TFileName);
+var
+  tmpPoint,size: TPoint;
+  tmpDataSize: Cardinal;
+  ImageData: PImageDataHeader;
+  PixelData: PByteArray;
+begin
+  size.X:=0;
+  size.Y:=0;
+  for tmpPoint in PointArray do
+  begin
+    if size.X<tmpPoint.X then
+      size.X:=tmpPoint.X;
+    if size.Y<tmpPoint.Y then
+      size.Y:=tmpPoint.Y;
+  end;
+  tmpDataSize:=SizeOf(TImageDataHeader)+(size.X+1)*(size.Y+1);
+  GetMem(ImageData,tmpDataSize);
+  ImageData.Width:=size.X+1;
+  ImageData.Height:=size.Y+1;
+  ImageData.FlipMarker:=false;
+  ImageData.ImageType:=itGray;
+  ImageData.TimedDataHeader.DataHeader.Size:=tmpDataSize;
+  PixelData:=ImageData.Data;
+  FillChar(PixelData^,ImageData.Width*ImageData.Height,0);
+  for tmpPoint in PointArray do
+    PixelData[tmpPoint.Y*ImageData.Width+tmpPoint.X]:=255;
+  ABLSaveAsBMP(ImageData,FileName);
+end;
+
 { TBMPSaver }
 
 constructor TBMPSaver.Create(AInputQueue: TBaseQueue; AName: string);
@@ -110,6 +141,7 @@ var
   buf: array [0..131071] of byte;
   ByteArray: PByteArray;
   WordArray: PWordArray;
+  Flip: boolean;
 begin
   SaveInstruction:=AInputData;
   //выровненная длина строки
@@ -138,7 +170,8 @@ begin
     FileStream.Write(BMPHeader,SizeOf(TBMPHeader));
     //буфер пикселей
     FillChar(buf[0],aw3,0);
-    if SaveInstruction.ImageDataHeader.FlipMarker then
+    Flip:=not SaveInstruction.ImageDataHeader.FlipMarker;
+    if Flip then
       // сначала нижняя строка
       row:=SaveInstruction.ImageDataHeader.Height-1
     else
@@ -150,7 +183,7 @@ begin
       begin
         Move(ByteArray[row*SaveInstruction.ImageDataHeader.Width*3],buf[0],SaveInstruction.ImageDataHeader.Width*3);
         FileStream.Write(buf[0],aw3);
-        if SaveInstruction.ImageDataHeader.FlipMarker then
+        if Flip then
           Dec(row)
         else
           Inc(row);
@@ -163,7 +196,7 @@ begin
         for x := 0 to SaveInstruction.ImageDataHeader.Width-1 do
           FillChar(buf[x*3],3,WordArray[row*SaveInstruction.ImageDataHeader.Width+x] div 256);
         FileStream.Write(buf[0],aw3);
-        if SaveInstruction.ImageDataHeader.FlipMarker then
+        if Flip then
           Dec(row)
         else
           Inc(row);
@@ -175,7 +208,7 @@ begin
         for x := 0 to SaveInstruction.ImageDataHeader.Width-1 do
           FillChar(buf[x*3],3,ByteArray[row*SaveInstruction.ImageDataHeader.Width+x]);
         FileStream.Write(buf[0],aw3);
-        if SaveInstruction.ImageDataHeader.FlipMarker then
+        if Flip then
           Dec(row)
         else
           Inc(row);

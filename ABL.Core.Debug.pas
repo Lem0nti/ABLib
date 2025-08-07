@@ -35,6 +35,13 @@ var
 ///  </param>
 procedure SendDebugMsg(AMessage: string);
 /// <summary>
+///  Сохранение отладочного сообщения без ключа. Файл лога: [имя исполняемого файла]_log\[ГГГГММДД].txt
+/// </summary>
+///  <param name="AMessage: string">
+///  Текст, подлежащий записи
+///  </param>
+procedure SendEmptyMsg(AMessage: string);
+/// <summary>
 ///  Сохранение отладочного сообщения при включённом ключе Error (по умолчанию включён). Файл лога: [имя исполняемого файла]_log\[ГГГГММДД].log
 /// </summary>
 ///  <param name="AMessage: string">
@@ -76,6 +83,12 @@ procedure SendDebugMsg(AMessage: string);
 begin
   if assigned(Debug) then
     Debug.SaveLogMsg('DEBUG',AMessage)
+end;
+
+procedure SendEmptyMsg(AMessage: string);
+begin
+  if assigned(Debug) then
+    Debug.SaveTextMsg('',AMessage);
 end;
 
 procedure SendErrorMsg(AMessage: string);
@@ -187,7 +200,7 @@ begin
       for q := 0 to KeyList.Count - 1 do
       begin
         dk:=PDebugKey(KeyList.Items[q]);
-        if dk^.Value and (dk^.Name=ShortString(AKey)) then
+        if (trim(AKey)='') or (dk^.Value and (dk^.Name=ShortString(AKey))) then
         begin
           //ищем папку
           ErrorCount:=0;
