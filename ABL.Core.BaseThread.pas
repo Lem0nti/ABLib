@@ -3,13 +3,13 @@
 interface
 
 uses
-  ABL.Core.BaseObject, ABL.Core.BaseQueue, ABL.Core.ThreadQueue, Classes, SysUtils,
+  ABL.Core.BaseHandler, ABL.Core.BaseQueue, ABL.Core.ThreadQueue, Classes, SysUtils,
   {$IFDEF UNIX}fgl, linux, unixtype{$ELSE}Generics.Collections, Windows{$ENDIF}, SyncObjs;
 
 type
   TSubThread=class;
 
-  TBaseThread=class(TBaseObject)
+  TBaseThread=class(TBaseHandler)
   private
     FStartTimeStamp: int64;
     function GetLastExec: TDateTime;
