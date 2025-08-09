@@ -12,11 +12,13 @@ type
   TBaseThread=class(TBaseHandler)
   private
     FStartTimeStamp: int64;
+    FThreadID: integer;
     function GetLastExec: TDateTime;
     function GetPerformance: Real;
     function GetActive: boolean;
     procedure SetActive(const Value: boolean);
     function GetIterationCount: Cardinal;
+    function GetThreadID: integer;
   protected
     FIterationCounter: Cardinal;
     FTerminated: boolean;
@@ -25,6 +27,7 @@ type
     FLastExec: TDateTime;
     FInputQueue, FOutputQueue: TBaseQueue;
     iCounterPerMSec, Time100: int64;
+    FBaseThreadLock: TCriticalSection;
     procedure IncreaseIteration(ATime: int64);
     procedure Execute; virtual; abstract;
     procedure Start; virtual;
@@ -35,8 +38,9 @@ type
     constructor Create(AName: string = ''); overload; override;
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); reintroduce; overload; virtual;
     destructor Destroy; override;
-    function InputQueue: TBaseQueue; virtual;
-    function OutputQueue: TBaseQueue; virtual;
+    function InputQueue: TBaseQueue; reintroduce;
+    function OutputQueue: TBaseQueue; reintroduce;
+    function Push(AItem: Pointer): boolean;
     procedure SetInputQueue(Queue: TBaseQueue); virtual;
     procedure SetOutputQueue(Queue: TBaseQueue); virtual;
     procedure Stop; virtual;
@@ -44,6 +48,7 @@ type
     property IterationCount: Cardinal read GetIterationCount;
     property LastExec: TDateTime read GetLastExec;
     property Performance: Real read GetPerformance;
+    property ThreadID: integer read GetThreadID;
   end;
 
   TSubThread=class(TThread)
@@ -55,41 +60,35 @@ type
     constructor Create(ABaseThread: TBaseThread); reintroduce;
   end;
 
-  {$IFDEF FPC}
-  TBaseThreadList = specialize {$IFDEF UNIX}TFPGObjectList{$ELSE}TObjectList{$ENDIF}<TBaseThread>;
-  {$ENDIF}
-
-var
-  ThreadList: {$IFDEF FPC}TBaseThreadList{$ELSE}TObjectList<TBaseThread>{$ENDIF};
-
 implementation
 
 { TBaseThread }
 
 constructor TBaseThread.Create(AName: string);
 begin
-  Create(nil,nil,AName);
-  FInputQueue:=TThreadQueue.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID));
+  Create(TThreadQueue.Create(ClassName+'_'+AName+'_Input_'+IntToStr(FID)),nil,AName);
 end;
 
 constructor TBaseThread.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
 begin
   inherited Create(AName);
-  FTerminated:=true;
+  FTerminated:=false;
   FInputQueue:=AInputQueue;
   FOutputQueue:=AOutputQueue;
+  if assigned(AInputQueue) then
+    FInputPin.Add(AInputQueue);
+  if assigned(AOutputQueue) then
+    FOutputPin.Add(AOutputQueue);
   FIterationCounter:=0;
   {$IFDEF MSWINDOWS}
   if not QueryPerformanceFrequency(iCounterPerMSec) then
   {$ENDIF}
     iCounterPerMSec:=10000000;
   iCounterPerMSec:=Round(iCounterPerMSec/1000);
-  ThreadList.Add(Self);
 end;
 
 destructor TBaseThread.Destroy;
 begin
-  ThreadList.Remove(Self);
   Stop;
   inherited;
 end;
@@ -101,32 +100,40 @@ end;
 
 function TBaseThread.GetIterationCount: Cardinal;
 begin
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     Result:=FIterationCounter;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 function TBaseThread.GetLastExec: TDateTime;
 begin
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     result:=FLastExec;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 function TBaseThread.GetPerformance: Real;
 begin
-  Lock;
+  FBaseThreadLock.Enter;
   try
     result:=FPerformance;
   finally
-    Unlock;
+    FBaseThreadLock.Leave;
   end;
+end;
+
+function TBaseThread.GetThreadID: integer;
+begin
+  if assigned(SubThread) then
+    Result:=SubThread.ThreadID
+  else
+    Result:=0;
 end;
 
 procedure TBaseThread.IncreaseIteration(ATime: int64);
@@ -148,6 +155,17 @@ end;
 function TBaseThread.OutputQueue: TBaseQueue;
 begin
   result:=FOutputQueue;
+end;
+
+function TBaseThread.Push(AItem: Pointer): boolean;
+begin
+  if assigned(FInputQueue) then
+  begin
+      FInputQueue.Push(AItem);
+      result:=true;
+  end
+  else
+    result:=false;
 end;
 
 procedure TBaseThread.SetActive(const Value: boolean);
@@ -235,12 +253,5 @@ procedure TSubThread.Execute;
 begin
   FBaseThread.Execute;
 end;
-
-initialization
-  ThreadList:={$IFDEF FPC}TBaseThreadList{$ELSE}TObjectList<TBaseThread>{$ENDIF}.Create;
-  ThreadList.{$IFDEF UNIX}FreeObjects{$ELSE}OwnsObjects{$ENDIF}:=false;
-
-finalization
-  ThreadList.Free;
 
 end.
