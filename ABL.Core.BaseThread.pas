@@ -85,11 +85,13 @@ begin
   {$ENDIF}
     iCounterPerMSec:=10000000;
   iCounterPerMSec:=Round(iCounterPerMSec/1000);
+  FBaseThreadLock:=TCriticalSection.Create;
 end;
 
 destructor TBaseThread.Destroy;
 begin
   Stop;
+  FreeAndNil(FBaseThreadLock);
   inherited;
 end;
 
