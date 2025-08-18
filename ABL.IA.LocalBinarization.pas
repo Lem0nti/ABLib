@@ -168,13 +168,13 @@ begin
         end;
       end;
     end;
-    tmpDataSize:=SizeOf(TImageDataHeader)+(DecodedFrame.Width*DecodedFrame.Height div 8)+1;
+    tmpDataSize:=SizeOf(TImageDataHeader)+(DecodedFrame^.Width*DecodedFrame^.Height div 8)+1;
     GetMem(AResultData,tmpDataSize);
     Move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
     DecodedFrame:=AResultData;
-    DecodedFrame.TimedDataHeader.DataHeader.Size:=tmpDataSize;
-    DecodedFrame.ImageType:=itBit;
-    Move(FBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
+    DecodedFrame^.TimedDataHeader.DataHeader.Size:=tmpDataSize;
+    DecodedFrame^.ImageType:=itBit;
+    Move(FBuffer^,DecodedFrame^.Data^,(DecodedFrame^.Width*DecodedFrame^.Height div 8)+1);
   end;
 end;
 

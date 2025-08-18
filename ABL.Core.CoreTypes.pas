@@ -16,6 +16,11 @@ type
     Data: Pointer;
   end;
 
+  TPointerMethod = procedure(var AInputData: Pointer) of object;
+  TPointerFunction = function: Pointer;
+  TWideStringFunction = function: WideString;
+  TSetParamProc= procedure(Name: WideString; Value: WideString; AInstance: Pointer);
+
 implementation
 
 end.

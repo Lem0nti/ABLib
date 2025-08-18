@@ -23,10 +23,8 @@ object MainFM: TMainFM
     ActivePage = tsCore
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 715
     object tsCore: TTabSheet
       Caption = 'Core'
-      ExplicitWidth = 707
       object bCreate: TButton
         Left = 16
         Top = 8
@@ -45,7 +43,6 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitWidth = 512
       end
       object bSend: TButton
         Left = 16
@@ -60,7 +57,6 @@ object MainFM: TMainFM
     object tsIO: TTabSheet
       Caption = 'IO'
       ImageIndex = 1
-      ExplicitWidth = 707
       object mIOLog: TMemo
         Left = 192
         Top = 18
@@ -70,7 +66,6 @@ object MainFM: TMainFM
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 512
       end
       object leText: TLabeledEdit
         Left = 11
@@ -95,7 +90,6 @@ object MainFM: TMainFM
     object tsVS_Render: TTabSheet
       Caption = 'VS + Render + IA'
       ImageIndex = 2
-      ExplicitWidth = 707
       object pnlVideo: TPanel
         Left = 0
         Top = 54
@@ -106,10 +100,6 @@ object MainFM: TMainFM
         Caption = 'pnlVideo'
         TabOrder = 0
         OnResize = pnlVideoResize
-        ExplicitLeft = 16
-        ExplicitTop = 56
-        ExplicitWidth = 673
-        ExplicitHeight = 338
         object pnlLeftTop: TPanel
           Left = 0
           Top = 0
@@ -172,9 +162,6 @@ object MainFM: TMainFM
         Align = alTop
         BevelOuter = bvNone
         TabOrder = 1
-        ExplicitLeft = 336
-        ExplicitTop = -4
-        ExplicitWidth = 625
         object bGo: TBitBtn
           Left = 534
           Top = 14

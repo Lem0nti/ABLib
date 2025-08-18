@@ -3,7 +3,7 @@ unit ABL.IA.FindDark;
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Core.BaseQueue, ABL.VS.VSTypes, ABL.IA.IATypes, SysUtils;
+  ABL.Core.DirectThread, ABL.Core.BaseQueue, ABL.VS.VSTypes, ABL.IA.IATypes, SysUtils, SyncObjs;
 
 type
   TFindDark=class(TDirectThread)

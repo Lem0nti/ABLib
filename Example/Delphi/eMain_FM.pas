@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   ABL.IA.ImageCutter, ABL.IA.IfMotion, ABL.IA.LocalBinarization, ABL.IA.FindDark,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IdGlobal, ABL.VS.RTSPReceiver, ABL.VS.FFMPEG,
-  ABL.IA.ImageConverter, ABL.Core.BaseThread, ABL.Core.ThreadItem,
+  ABL.IA.ImageConverter, ABL.Core.BaseThread, ABL.Core.ThreadItem, ABL.Core.BaseHandler,
   ABL.Core.QueueMultiplier, ABL.Core.ThreadController, Vcl.ComCtrls, ABL.Render.DirectRender, ABL.IA.ImageResize,
   Vcl.StdCtrls, eDirect_Cl, eMessage, eTimer_Cl, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
   Vcl.ExtCtrls, ABL.IO.TCPReader, eTCPToLog_Cl, Vcl.Buttons, ABL.VS.VideoDecoder, ABL.Core.ThreadQueue;
@@ -264,11 +264,11 @@ end;
 procedure TMainFM.pnlRightTopDblClick(Sender: TObject);
 var
   MainRender,SubRender: TDirectRender;
-  Thread: TBaseThread;
+  Thread: TBaseHandler;
 begin
   MainRender:=nil;
   SubRender:=nil;
-  for Thread in ThreadList do
+  for Thread in HandlerList do
     if Thread.ClassNameIs('TDirectRender') then
     begin
       if TDirectRender(Thread).Handle=pnlLeftTop.Handle then
