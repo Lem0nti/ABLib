@@ -151,7 +151,7 @@ begin
 end;
 
 initialization
-  HandlerList:={$IFDEF FPC}TBaseThreadList{$ELSE}TObjectList<TBaseHandler>{$ENDIF}.Create;
+  HandlerList:={$IFDEF FPC}TBaseHandlerList{$ELSE}TObjectList<TBaseHandler>{$ENDIF}.Create;
   HandlerList.{$IFDEF UNIX}FreeObjects{$ELSE}OwnsObjects{$ENDIF}:=false;
 
 finalization
