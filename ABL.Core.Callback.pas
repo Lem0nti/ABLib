@@ -3,22 +3,20 @@
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Core.BaseQueue, SysUtils, SyncObjs;
+  ABL.Core.DirectThread, ABL.Core.BaseQueue, SysUtils, SyncObjs, ABL.Core.CoreTypes;
 
 type
-  TDoExecuteCallbackMethod = procedure(var AInputData: Pointer) of object;
-
   TCallback=class(TDirectThread)
   private
-    FDoExecuteCallbackMethod: TDoExecuteCallbackMethod;
-    function GetOnExecute: TDoExecuteCallbackMethod;
-    procedure SetOnExecute(const Value: TDoExecuteCallbackMethod);
+    FDoExecuteCallbackMethod: TPointerMethod;
+    function GetOnExecute: TPointerMethod;
+    procedure SetOnExecute(const Value: TPointerMethod);
   protected
     procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
     constructor Create(AInputQueue: TBaseQueue; AName: string = ''); reintroduce;
     destructor Destroy; override;
-    property OnExecute: TDoExecuteCallbackMethod read GetOnExecute write SetOnExecute;
+    property OnExecute: TPointerMethod read GetOnExecute write SetOnExecute;
   end;
 
 implementation
@@ -53,12 +51,12 @@ begin
   end;
 end;
 
-function TCallback.GetOnExecute: TDoExecuteCallbackMethod;
+function TCallback.GetOnExecute: TPointerMethod;
 begin
   result:=FDoExecuteCallbackMethod;
 end;
 
-procedure TCallback.SetOnExecute(const Value: TDoExecuteCallbackMethod);
+procedure TCallback.SetOnExecute(const Value: TPointerMethod);
 begin
   FLock.Enter;
   try

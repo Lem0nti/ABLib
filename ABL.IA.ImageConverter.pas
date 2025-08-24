@@ -24,8 +24,8 @@ type
     procedure SetThreshold(const Value: byte);
     procedure SetUseGreen(const Value: boolean);
   protected
-    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
   public
+    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     property ResultType: TABLImageType read GetResultType write SetResultType;
     property Threshold: byte read GetThreshold write SetThreshold;

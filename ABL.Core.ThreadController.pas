@@ -3,7 +3,7 @@
 interface
 
 uses
-  ABL.Core.TimerThread, ABL.Core.BaseQueue, ABL.Core.BaseThread, ABL.Core.ThreadQueue, SysUtils,
+  ABL.Core.TimerThread, ABL.Core.BaseQueue, ABL.Core.BaseThread, ABL.Core.ThreadQueue, SysUtils, ABL.Core.BaseHandler,
   {$IFNDEF FPC}PsAPI,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} ABL.Core.Debug, SyncObjs, ABL.Core.ThreadItem;
 
 type
@@ -26,7 +26,7 @@ type
     function CheckForAllEmpty: boolean;
     function GetStructure: string;
     function ItemByName(AName: string): TThreadItem;
-    function ThreadByName(AName: string): TBaseThread;
+    function ThreadByName(AName: string): TBaseHandler;
     function QueueByName(AName: string): TBaseQueue;
     property LogMem: Cardinal read GetLogMem write SetLogMem;
     property LogPerformanceValue: Real read GetLogPerformanceValue write SetLogPerformanceValue;
@@ -77,7 +77,7 @@ var
   tmpName: string;
   cnt,tmpQueueValue: integer;
   perf: Real;
-  Thread: TBaseThread;
+  Thread: TBaseHandler;
   cb: integer;
   {$IFNDEF FPC}
   pmc: PPROCESS_MEMORY_COUNTERS;
@@ -98,16 +98,18 @@ begin
         SendPerformanceMsg('TThreadController.DoExecute 97, '+tmpName+'='+IntToStr(cnt));
     end;
   end;
-  for Thread in ThreadList do
-  begin
-    perf:=Thread.Performance;
-    if perf>tmpPerformanceValue then
+  for Thread in HandlerList do
+    if Thread is TBaseThread then
     begin
-      tmpName:=Thread.Name;
-      if tmpName<>'' then
-        SendPerformanceMsg('TThreadController.DoExecute 107, '+tmpName+'='+FormatFloat('0.0000',perf)+', '+IntToStr(Thread.IterationCount));
+      perf:=TBaseThread(Thread).Performance;
+      if perf>tmpPerformanceValue then
+      begin
+        tmpName:=Thread.Name;
+        if tmpName<>'' then
+          SendPerformanceMsg('TThreadController.DoExecute 109, '+tmpName+'='+FormatFloat('0.0000',perf)+', '+
+              IntToStr(TBaseThread(Thread).IterationCount));
+      end;
     end;
-  end;
   {$IFNDEF FPC}
   cb:=SizeOf(_PROCESS_MEMORY_COUNTERS);
   GetMem(pmc,cb);
@@ -132,46 +134,46 @@ end;
 
 function TThreadController.GetLogMem: Cardinal;
 begin
-  Lock;
+  FBaseThreadLock.Enter;
   try
     result:=FLogMem;
   finally
-    Unlock;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 function TThreadController.GetLogPerformanceValue: Real;
 begin
-  Lock;
+  FBaseThreadLock.Enter;
   try
     result:=FLogPerformanceValue;
   finally
-    Unlock;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 function TThreadController.GetLogQueueValue: Cardinal;
 begin
-  Lock;
+  FBaseThreadLock.Enter;
   try
     result:=FLogQueueValue;
   finally
-    Unlock;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 function TThreadController.GetStructure: string;
 var
   tmpQueue: TBaseQueue;
-  tmpThread: TBaseThread;
+  tmpThread: TBaseHandler;
 begin
   result:='[TBaseQueue]'#13#10;
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     for tmpQueue in QueueList do
       result:=result+tmpQueue.ClassName+' '+tmpQueue.Name+' '+IntToStr(tmpQueue.ID)+#13#10;
     result:=result+'[TBaseThread]'#13#10;
-    for tmpThread in ThreadList do
+    for tmpThread in HandlerList do
       if tmpThread<>Self then
       begin
         result:=result+tmpThread.ClassName+' '+tmpThread.Name+' '+IntToStr(tmpThread.ID)+' ';
@@ -189,7 +191,7 @@ begin
         result:=result+#13#10;
       end;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 
@@ -221,49 +223,49 @@ end;
 
 procedure TThreadController.SetLogMem(const Value: Cardinal);
 begin
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     FLogMem:=Value;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 procedure TThreadController.SetLogPerformanceValue(const Value: Real);
 begin
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     FLogPerformanceValue:=Value;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 
 procedure TThreadController.SetLogQueueValue(const Value: Cardinal);
 begin
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     FLogQueueValue:=Value;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 
-function TThreadController.ThreadByName(AName: string): TBaseThread;
+function TThreadController.ThreadByName(AName: string): TBaseHandler;
 var
-  Thread: TBaseThread;
+  Thread: TBaseHandler;
 begin
-  FLock.Enter;
+  FBaseThreadLock.Enter;
   try
     result:=nil;
-    for Thread in ThreadList do
+    for Thread in HandlerList do
       if Thread.Name=AName then
       begin
         result:=Thread;
         exit;
       end;
   finally
-    FLock.Leave;
+    FBaseThreadLock.Leave;
   end;
 end;
 

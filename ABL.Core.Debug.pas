@@ -35,6 +35,13 @@ var
 ///  </param>
 procedure SendDebugMsg(AMessage: string);
 /// <summary>
+///  Сохранение отладочного сообщения без ключа. Файл лога: [имя исполняемого файла]_log\[ГГГГММДД].txt
+/// </summary>
+///  <param name="AMessage: string">
+///  Текст, подлежащий записи
+///  </param>
+procedure SendEmptyMsg(AMessage: string);
+/// <summary>
 ///  Сохранение отладочного сообщения при включённом ключе Error (по умолчанию включён). Файл лога: [имя исполняемого файла]_log\[ГГГГММДД].log
 /// </summary>
 ///  <param name="AMessage: string">
@@ -76,6 +83,12 @@ procedure SendDebugMsg(AMessage: string);
 begin
   if assigned(Debug) then
     Debug.SaveLogMsg('DEBUG',AMessage)
+end;
+
+procedure SendEmptyMsg(AMessage: string);
+begin
+  if assigned(Debug) then
+    Debug.SaveTextMsg('',AMessage);
 end;
 
 procedure SendErrorMsg(AMessage: string);
@@ -179,6 +192,7 @@ var
   fn: TFileName;
   TheFileName: array[0..MAX_PATH] of char;
   tmpFileName: string;
+  ErrorCount: integer;
 begin
   FLock.Enter;
   try
@@ -186,29 +200,37 @@ begin
       for q := 0 to KeyList.Count - 1 do
       begin
         dk:=PDebugKey(KeyList.Items[q]);
-        if dk^.Value and (dk^.Name=ShortString(AKey)) then
+        if (trim(AKey)='') or (dk^.Value and (dk^.Name=ShortString(AKey))) then
         begin
           //ищем папку
-          try
-            fn:=ChangeFileExt(AFileName,'_log');
-            ForceDirectories(fn);
-            fn:=fn+'/'+FormatDateTime('YYYYMMDD',now)+ExtractFileExt(AFileName);
-            Assign(TxtFile,fn);
-            if not FileExists(fn) then
-              Rewrite(TxtFile)
-            else
-              Append(TxtFile);
-            FillChar(TheFileName, sizeof(TheFileName), #0);
-            {$IFDEF UNIX}
-            tmpFileName:=GetModuleFileName(get_caller_addr(get_frame));
-            {$ELSE}
-            GetModuleFileName(hInstance, TheFileName, sizeof(TheFileName));
-            tmpFileName:=trim(TheFileName);
-            {$ENDIF}
-            Writeln(TxtFile,AKey+' '+DateTimeToStr(now)+' '+ExtractFileName(tmpFileName)+' '+AMsg);
-            Close(TxtFile);
-          except
-          end;
+          ErrorCount:=0;
+          while ErrorCount<2 do
+            try
+              fn:=ChangeFileExt(AFileName,'_log');
+              ForceDirectories(fn);
+              fn:=fn+'/'+FormatDateTime('YYYYMMDD',now)+ExtractFileExt(AFileName);
+              Assign(TxtFile,fn);
+              if not FileExists(fn) then
+                Rewrite(TxtFile)
+              else
+                Append(TxtFile);
+              FillChar(TheFileName, sizeof(TheFileName), #0);
+              {$IFDEF UNIX}
+              tmpFileName:=GetModuleFileName(get_caller_addr(get_frame));
+              {$ELSE}
+              GetModuleFileName(hInstance, TheFileName, sizeof(TheFileName));
+              tmpFileName:=trim(TheFileName);
+              {$ENDIF}
+              Writeln(TxtFile,AKey+' '+DateTimeToStr(now)+' '+ExtractFileName(tmpFileName)+' '+AMsg);
+              Close(TxtFile);
+              break;
+            except on e: EInOutError do
+              if (e.ErrorCode=32) then
+              begin
+                Sleep(32);
+                Inc(ErrorCount);
+              end;
+            end;
           break;
         end;
     end;

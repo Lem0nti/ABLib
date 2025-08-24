@@ -10,7 +10,7 @@ uses
   ABL.IO.IOTypes;
 
 type
-  TABLImageType = (itBGR, itGray, itBit, itGrayIntegral, itBitIntegral);
+  TABLImageType = (itBGR, itGray, itBit, itGrayIntegral, itBitIntegral, itWordIntegral, itWord);
 
   PImageDataHeader=^TImageDataHeader;
   TImageDataHeader=record

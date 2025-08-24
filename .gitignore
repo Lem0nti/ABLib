@@ -70,3 +70,11 @@ modules/
 *.log
 *.res
 *.skincfg
+
+*.ppu
+*.obj
+*.ini
+*.lps
+*.compiled
+backup/
+x86_64-win64/

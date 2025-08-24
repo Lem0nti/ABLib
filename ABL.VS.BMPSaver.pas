@@ -43,7 +43,9 @@ type
     procedure SaveAsBmp(ImageDataHeader: PImageDataHeader; FileName: TFileName);
   end;
 
-procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; FileName: TFileName);
+procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; FileName: TFileName); overload;
+procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; CutRect: TRect; FileName: TFileName); overload;
+procedure ABLSaveAsBMP(PointArray: array of TPoint; FileName: TFileName); overload;
 
 implementation
 
@@ -55,6 +57,69 @@ begin
   if not assigned(DebugBMPSaver) then
     DebugBMPSaver:=TBMPSaver.Create(TThreadQueue.Create('DebugBMPSaver'));
   DebugBMPSaver.SaveAsBmp(ImageDataHeader,FileName);
+end;
+
+procedure ABLSaveAsBMP(ImageDataHeader: PImageDataHeader; CutRect: TRect; FileName: TFileName);
+var
+  BPP: byte;
+  tmpDataSize: Cardinal;
+  tmpImageData: PImageDataHeader;
+  y,RectWidth: integer;
+  ByteArrayFrom,ByteArrayTo: PByteArray;
+begin
+  if ImageDataHeader.ImageType=itBGR then
+    BPP:=3
+  else if ImageDataHeader.ImageType=itGray then
+    BPP:=1
+  else
+    exit;
+  RectWidth:=CutRect.Width+1;
+  tmpDataSize:=SizeOf(TImageDataHeader)+RectWidth*(CutRect.Height+1)*BPP;
+  GetMem(tmpImageData,tmpDataSize);
+  try
+    Move(ImageDataHeader^,tmpImageData^,SizeOf(TImageDataHeader));
+    tmpImageData^.Width:=RectWidth;
+    tmpImageData^.Height:=CutRect.Height+1;
+    tmpImageData^.TimedDataHeader.DataHeader.Size:=tmpDataSize;
+    ByteArrayFrom:=ImageDataHeader.Data;
+    ByteArrayTo:=tmpImageData.Data;
+    for y := CutRect.Top to CutRect.Bottom do
+      Move(ByteArrayFrom[(y*ImageDataHeader^.Width+CutRect.Left)*BPP],
+          ByteArrayTo[(y-CutRect.Top)*RectWidth*BPP],RectWidth*BPP);
+    ABLSaveAsBMP(tmpImageData,FileName);
+  finally
+    FreeMem(tmpImageData);
+  end;
+end;
+
+procedure ABLSaveAsBMP(PointArray: array of TPoint; FileName: TFileName);
+var
+  tmpPoint,size: TPoint;
+  tmpDataSize: Cardinal;
+  ImageData: PImageDataHeader;
+  PixelData: PByteArray;
+begin
+  size.X:=0;
+  size.Y:=0;
+  for tmpPoint in PointArray do
+  begin
+    if size.X<tmpPoint.X then
+      size.X:=tmpPoint.X;
+    if size.Y<tmpPoint.Y then
+      size.Y:=tmpPoint.Y;
+  end;
+  tmpDataSize:=SizeOf(TImageDataHeader)+(size.X+1)*(size.Y+1);
+  GetMem(ImageData,tmpDataSize);
+  ImageData.Width:=size.X+1;
+  ImageData.Height:=size.Y+1;
+  ImageData.FlipMarker:=false;
+  ImageData.ImageType:=itGray;
+  ImageData.TimedDataHeader.DataHeader.Size:=tmpDataSize;
+  PixelData:=ImageData.Data;
+  FillChar(PixelData^,ImageData.Width*ImageData.Height,0);
+  for tmpPoint in PointArray do
+    PixelData[tmpPoint.Y*ImageData.Width+tmpPoint.X]:=255;
+  ABLSaveAsBMP(ImageData,FileName);
 end;
 
 { TBMPSaver }
@@ -71,10 +136,12 @@ var
   aw3: integer;
   BMPHeader: TBMPHeader;
   BMPFileHeader: TBMPFileHeader;
-  row,q: integer;
+  row,y,x: integer;
   FileStream: TFileStream;
-  buf: array of byte;
+  buf: array [0..131071] of byte;
   ByteArray: PByteArray;
+  WordArray: PWordArray;
+  Flip: boolean;
 begin
   SaveInstruction:=AInputData;
   //выровненная длина строки
@@ -102,24 +169,50 @@ begin
     FileStream.Write(BMPFileHeader,SizeOf(TBMPFileHeader));
     FileStream.Write(BMPHeader,SizeOf(TBMPHeader));
     //буфер пикселей
-    SetLength(buf,aw3);
     FillChar(buf[0],aw3,0);
-    if SaveInstruction.ImageDataHeader.FlipMarker then
+    Flip:=not SaveInstruction.ImageDataHeader.FlipMarker;
+    if Flip then
       // сначала нижняя строка
       row:=SaveInstruction.ImageDataHeader.Height-1
     else
       // сначала верхняя строка
       row:=0;
     ByteArray:=SaveInstruction.ImageDataHeader.Data;
-    for q := 0 to SaveInstruction.ImageDataHeader.Height-1 do
+    if SaveInstruction.ImageDataHeader.ImageType=itBGR then
+      for y := 0 to SaveInstruction.ImageDataHeader.Height-1 do
+      begin
+        Move(ByteArray[row*SaveInstruction.ImageDataHeader.Width*3],buf[0],SaveInstruction.ImageDataHeader.Width*3);
+        FileStream.Write(buf[0],aw3);
+        if Flip then
+          Dec(row)
+        else
+          Inc(row);
+      end
+    else if SaveInstruction.ImageDataHeader.ImageType=itWord then
     begin
-      Move(ByteArray[row*SaveInstruction.ImageDataHeader.Width*3],buf[0],SaveInstruction.ImageDataHeader.Width*3);
-      FileStream.Write(buf[0],length(buf));
-      if SaveInstruction.ImageDataHeader.FlipMarker then
-        Dec(row)
-      else
-        Inc(row);
-    end;
+      WordArray:=SaveInstruction.ImageDataHeader.Data;
+      for y := 0 to SaveInstruction.ImageDataHeader.Height-1 do
+      begin
+        for x := 0 to SaveInstruction.ImageDataHeader.Width-1 do
+          FillChar(buf[x*3],3,WordArray[row*SaveInstruction.ImageDataHeader.Width+x] div 256);
+        FileStream.Write(buf[0],aw3);
+        if Flip then
+          Dec(row)
+        else
+          Inc(row);
+      end;
+    end
+    else
+      for y := 0 to SaveInstruction.ImageDataHeader.Height-1 do
+      begin
+        for x := 0 to SaveInstruction.ImageDataHeader.Width-1 do
+          FillChar(buf[x*3],3,ByteArray[row*SaveInstruction.ImageDataHeader.Width+x]);
+        FileStream.Write(buf[0],aw3);
+        if Flip then
+          Dec(row)
+        else
+          Inc(row);
+      end;
   finally
     FileStream.Free;
   end;
@@ -130,12 +223,12 @@ var
   SaveInstruction: PSaveInstruction;
   tmpData: Pointer;
 begin
-   New(SaveInstruction);
-   SaveInstruction.FileName:=FileName;
-   GetMem(tmpData,ImageDataHeader.TimedDataHeader.DataHeader.Size);
-   Move(ImageDataHeader^,tmpData^,ImageDataHeader.TimedDataHeader.DataHeader.Size);
-   SaveInstruction.ImageDataHeader:=tmpData;
-   FInputQueue.Push(SaveInstruction);
+  New(SaveInstruction);
+  SaveInstruction.FileName:=FileName;
+  GetMem(tmpData,ImageDataHeader.TimedDataHeader.DataHeader.Size);
+  Move(ImageDataHeader^,tmpData^,ImageDataHeader.TimedDataHeader.DataHeader.Size);
+  SaveInstruction.ImageDataHeader:=tmpData;
+  FInputQueue.Push(SaveInstruction);
 end;
 
 end.

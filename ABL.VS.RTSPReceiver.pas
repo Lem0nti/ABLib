@@ -130,6 +130,7 @@ begin
     begin
       SendErrorMsg('TLogicPing.Execute 128: слишком маленький таймаут ('+tmpHost+') - '+IntToStr(FTimeOut div 1000));
       FTimeOut:=60000;
+      exit;
     end;
       while not Terminated do
         try

@@ -3,17 +3,20 @@ unit ABL.IA.FindDark;
 interface
 
 uses
-  ABL.Core.DirectThread, ABL.Core.BaseQueue, ABL.VS.VSTypes, ABL.IA.IATypes, SysUtils;
+  ABL.Core.DirectThread, ABL.Core.BaseQueue, ABL.VS.VSTypes, ABL.IA.IATypes, SysUtils, SyncObjs;
 
 type
   TFindDark=class(TDirectThread)
   private
     tmpBuffer: Pointer;
-  protected
-    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
+    FGreenDec: Real;
+    function GetGreenDec: Real;
+    procedure SetGreenDec(const Value: Real);
   public
     constructor Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string = ''); override;
     destructor Destroy; override;
+    procedure DoExecute(var AInputData: Pointer; var AResultData: Pointer); override;
+    property GreenDec: Real read GetGreenDec write SetGreenDec;
   end;
 
 implementation
@@ -24,6 +27,7 @@ constructor TFindDark.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: strin
 begin
   inherited Create(AInputQueue,AOutputQueue,AName);
   GetMem(tmpBuffer,2048*2048*3);
+  FGreenDec:=0.8;
   Start;
 end;
 
@@ -34,8 +38,6 @@ begin
 end;
 
 procedure TFindDark.DoExecute(var AInputData: Pointer; var AResultData: Pointer);
-const
-  GreenDec  = 0.8;
 var
   x,y,CurrentPixel,CurrentBit: integer;
   CurrentByte: Cardinal;
@@ -45,12 +47,16 @@ var
   ResultPointer: PByte;
   tmpDataSize: integer;
   CurGreen: byte;
+  CurDec: Real;
 begin
   DecodedFrame:=AInputData;
   if DecodedFrame.ImageType in [itBGR,itGray] then
   begin
     tmpDataSize:=((DecodedFrame.Width*DecodedFrame.Height) div 8)+1;
     FillChar(tmpBuffer^,tmpDataSize,255);
+    FLock.Enter;
+    CurDec:=FGreenDec;
+    FLock.Enter;
     if DecodedFrame.ImageType=itBGR then
       for y:=1 to DecodedFrame.Height-2 do
       begin
@@ -62,7 +68,7 @@ begin
           CurrentPixel:=y*DecodedFrame.Width+x;
           CurrentByte:=CurrentPixel div 8;
           CurrentBit:=CurrentPixel mod 8;
-          CurGreen:=Round(RGBLine[x].rgbtGreen*GreenDec);
+          CurGreen:=Round(RGBLine[x].rgbtGreen*CurDec);
           if RGBLineTop[x-1].rgbtGreen>CurGreen then
             if RGBLineTop[x].rgbtGreen>CurGreen then
               if RGBLineTop[x+1].rgbtGreen>CurGreen then
@@ -87,7 +93,7 @@ begin
           CurrentPixel:=y*DecodedFrame.Width+x;
           CurrentByte:=CurrentPixel div 8;
           CurrentBit:=CurrentPixel mod 8;
-          CurGreen:=Round(ByteLine[x]*GreenDec);
+          CurGreen:=Round(ByteLine[x]*CurDec);
           if ByteLineTop[x-1]>CurGreen then
             if ByteLineTop[x]>CurGreen then
               if ByteLineTop[x+1]>CurGreen then
@@ -101,16 +107,28 @@ begin
           ResultPointer^:=(ResultPointer^ and not (1 shl CurrentBit));
         end;
       end;
+    tmpDataSize:=SizeOf(TImageDataHeader)+(DecodedFrame.Width*DecodedFrame.Height div 8)+1;
+    GetMem(AResultData,tmpDataSize);
+    Move(AInputData^,AResultData^,SizeOf(TImageDataHeader));
+    DecodedFrame:=AResultData;
+    DecodedFrame.TimedDataHeader.DataHeader.Size:=tmpDataSize;
     DecodedFrame.ImageType:=itBit;
-    if assigned(FOutputQueue) then
-    begin
-      Move(tmpBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
-      AResultData:=AInputData;
-      AInputData:=nil;
-    end;
+    Move(tmpBuffer^,DecodedFrame.Data^,(DecodedFrame.Width*DecodedFrame.Height div 8)+1);
   end;
-  if assigned(AInputData) then
-    FreeMem(DecodedFrame.Data);
+end;
+
+function TFindDark.GetGreenDec: Real;
+begin
+  FLock.Enter;
+  result:=FGreenDec;
+  FLock.Leave;
+end;
+
+procedure TFindDark.SetGreenDec(const Value: Real);
+begin
+  FLock.Enter;
+  FGreenDec:=Value;
+  FLock.Leave;
 end;
 
 end.

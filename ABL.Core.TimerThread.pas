@@ -51,8 +51,8 @@ implementation
 
 constructor TTimerThread.Create(AInputQueue, AOutputQueue: TBaseQueue; AName: string);
 begin
-  inherited Create(AInputQueue,AOutputQueue,AName);
   ReceiveThread:=nil;
+  inherited Create(AInputQueue,AOutputQueue,AName);
   FWaitForStop:=TEvent.Create(nil,True,False,'');
   FInterval:=1000;
   FEnabled:=true;
@@ -61,8 +61,8 @@ end;
 
 constructor TTimerThread.Create(AName: string);
 begin
-  inherited Create(AName);
   ReceiveThread:=nil;
+  inherited Create(AName);
   FWaitForStop:=TEvent.Create(nil,True,False,'');
   FInterval:=1000;
   FEnabled:=true;
@@ -188,9 +188,9 @@ procedure TTimerThread.StopReceive;
 begin
   if assigned(ReceiveThread) then
     ReceiveThread.Terminate;
-  ReceiveThread:=nil;
   if assigned(FInputQueue) then
     FInputQueue.SetEvent;
+  ReceiveThread:=nil;
 end;
 
 { TReceiveThread }
@@ -222,29 +222,30 @@ begin
         SendErrorMsg('TReceiveThread.Execute '+FTimerThread.ClassName+'('+FTimerThread.FName+').Execute 219: не указана входящая очередь');
         FTimerThread.StopReceive;
       end;
-      if (not Terminated)and assigned(FTimerThread.FInputQueue) then
-        while FTimerThread.InputQueue.Count>0 do
-        begin
-          Mess:=FTimerThread.InputQueue.Pop;
-          try
-            ExitOnError:=false;
-            FTimerThread.StartWatch;
-            FTimerThread.DoReceive(Mess);
-            T3:=T3+FTimerThread.StopWatch;
-            inc(cnt);
-            if cnt>=100 then
-            begin
-              FTimerThread.SetReceiveCounter(T3/100);
-              T3:=0;
-              cnt:=0;
+      if (not Terminated)then
+        if assigned(FTimerThread) and assigned(FTimerThread.FInputQueue) then
+          while FTimerThread.InputQueue.Count>0 do
+          begin
+            Mess:=FTimerThread.InputQueue.Pop;
+            try
+              ExitOnError:=false;
+              FTimerThread.StartWatch;
+              FTimerThread.DoReceive(Mess);
+              T3:=T3+FTimerThread.StopWatch;
+              inc(cnt);
+              if cnt>=100 then
+              begin
+                FTimerThread.SetReceiveCounter(T3/100);
+                T3:=0;
+                cnt:=0;
+              end;
+              if Terminated then
+                exit;
+            finally
+              if assigned(Mess) then
+                FreeMem(Mess);
             end;
-            if Terminated then
-              exit;
-          finally
-            if assigned(Mess) then
-              FreeMem(Mess);
           end;
-        end;
     except on e: Exception do
       begin
         SendErrorMsg('TReceiveThread.Execute '+FTimerThread.ClassName+'('+FTimerThread.FName+').Execute 251: '+e.ClassName+' - '+e.Message);
