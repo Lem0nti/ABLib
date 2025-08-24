@@ -7,7 +7,7 @@
 interface
 
 uses
-  ABL.Core.CoreTypes;
+  ABL.Core.CoreTypes, SysUtils;
 
 type
   PTimedDataHeader=^TTimedDataHeader;
@@ -16,6 +16,7 @@ type
     Time: int64;
     Reserved: Int64;
     function Data: Pointer;
+    procedure Init;
   end;
 
 const
@@ -32,6 +33,18 @@ implementation
 function TTimedDataHeader.Data: Pointer;
 begin
   result:=Pointer(NativeUInt(@Self)+SizeOf(TTimedDataHeader));
+end;
+
+procedure TTimedDataHeader.Init;
+var
+  tmpLTimeStamp: TTimeStamp;
+  Time: int64;
+begin
+  DataHeader.Init;
+  DataHeader.DataType:=1;
+  tmpLTimeStamp := DateTimeToTimeStamp(now);
+  Time:=tmpLTimeStamp.Date*Int64(MSecsPerDay)+tmpLTimeStamp.Time-UnixTimeStart;
+  Reserved:=0;
 end;
 
 end.

@@ -169,10 +169,7 @@ begin
       SetLength(ABytes,1024);
       SetLength(AResultBytes,0);
       NTime:=0;
-      ReadedData.DataHeader.Magic:=16961;
-      ReadedData.DataHeader.DataType:=1;
-      ReadedData.DataHeader.Version:=0;
-      ReadedData.Reserved:=0;
+      ReadedData.Init;
       while not Terminated do
       begin
         w:=1024;

@@ -1,4 +1,4 @@
-﻿unit ABL.VS.VSTypes;  
+﻿unit ABL.VS.VSTypes;
 
 {$IFDEF FPC}
 {$mode objfpc}{$H+}{$modeswitch advancedrecords}
@@ -22,6 +22,7 @@ type
     Reserved0: Word;
     Reserved1: integer;
     function Data: Pointer;
+    procedure Init;
   end;
 
 implementation
@@ -31,6 +32,14 @@ implementation
 function TImageDataHeader.Data: Pointer;
 begin
   result:=Pointer(NativeUInt(@Self)+SizeOf(TImageDataHeader));
+end;
+
+procedure TImageDataHeader.Init;
+begin
+  TimedDataHeader.Init;
+  TimedDataHeader.DataHeader.DataType:=2;
+  Left:=0;
+  Top:=0;
 end;
 
 end.
